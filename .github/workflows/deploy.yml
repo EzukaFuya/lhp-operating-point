@@ -41,6 +41,9 @@ jobs:
         run: npm run build
         env:
           OBSERVABLE_TELEMETRY_DISABLE: 'true'
+          # Root by default. A project Pages site is served under
+          # /<repo>/, so set the SITE_BASE variable to that.
+          SITE_BASE: ${{ vars.SITE_BASE }}
 
       - name: Disable Jekyll
         run: touch dist/.nojekyll

@@ -4,6 +4,11 @@ export default {
   title: 'Loop heat pipe operating point',
   root: 'src',
 
+  // A single page emits relative asset paths, so the site already works
+  // whether it is served from a domain root or from `/<repo>/`. SITE_BASE is
+  // here for the day it grows a second page and needs absolute links.
+  base: process.env.SITE_BASE || '/',
+
   // The page carries the design's own visual language, so the built-in
   // themes are replaced outright rather than layered under.
   theme: [],
