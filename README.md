@@ -110,15 +110,16 @@ producing plain DOM.
 
 ## Deploying
 
-`.github/workflows/deploy.yml` builds on every push to `main` and publishes to
-GitHub Pages. It supports two arrangements:
+`.github/workflows/deploy.yml` typechecks, builds and publishes to this
+repository's GitHub Pages on every push to `main`.
 
-- **Same repository** — leave the `SITE_REPO` variable unset. Needs either a
-  public repository or a GitHub plan that allows Pages on a private one.
-- **Private source, public site** — set the repository variable `SITE_REPO` to
-  `owner/name` of a public repository, and the secret `SITE_TOKEN` to a token
-  with `contents: write` on it. The workflow force-pushes the built site
-  there, and that repository serves Pages.
+One setting is needed the first time: **Settings → Pages → Build and
+deployment → Source: GitHub Actions**. After that the site is live at
+`https://<owner>.github.io/<repo>/`, or at a custom domain if one is set.
+
+The page emits relative asset paths, so it works at a domain root and under a
+`/<repo>/` sub-path without configuration. `SITE_BASE` is wired through the
+workflow for the day the site grows a second page and needs absolute links.
 
 ## Provenance
 

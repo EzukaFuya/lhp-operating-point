@@ -1,16 +1,8 @@
 name: Deploy to GitHub Pages
 
-# The source lives in a private repository; this builds the static site and
-# publishes it to the public Pages site. `SITE_REPO` / `SITE_TOKEN` decide
-# where it lands:
-#
-#   - unset      → deploy to this repository's own Pages (needs a plan that
-#                  allows Pages on a private repo, or a public repository)
-#   - both set   → push the built site to the separate public repository
-#                  named by SITE_REPO, which serves it from Pages
-#
-# SITE_REPO is a variable (owner/name); SITE_TOKEN is a secret holding a PAT
-# with `contents: write` on that repository.
+# Builds the static site and publishes it to this repository's GitHub Pages.
+# Enable it once under Settings → Pages → Build and deployment → Source:
+# "GitHub Actions".
 
 on:
   push:
@@ -41,24 +33,21 @@ jobs:
         run: npm run build
         env:
           OBSERVABLE_TELEMETRY_DISABLE: 'true'
-          # Root by default. A project Pages site is served under
-          # /<repo>/, so set the SITE_BASE variable to that.
+          # A single page emits relative asset paths, so this is only needed
+          # if the site ever grows a second page served under a sub-path.
           SITE_BASE: ${{ vars.SITE_BASE }}
 
+      # Pages would otherwise run the output through Jekyll, which strips
+      # the leading-underscore directories Framework emits.
       - name: Disable Jekyll
         run: touch dist/.nojekyll
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          name: site
           path: dist
-          retention-days: 7
 
-  # Deploys to this repository's own Pages. Skipped when the site is served
-  # from a separate public repository.
-  pages:
+  deploy:
     needs: build
-    if: vars.SITE_REPO == ''
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -67,45 +56,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: dist
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
       - id: deploy
         uses: actions/deploy-pages@v4
-
-  # Pushes the built site to the public repository that serves it, so the
-  # source can stay private.
-  publish-to-site-repo:
-    needs: build
-    if: vars.SITE_REPO != ''
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: site
-          path: dist
-
-      - name: Push to ${{ vars.SITE_REPO }}
-        env:
-          SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
-          SITE_REPO: ${{ vars.SITE_REPO }}
-        run: |
-          if [ -z "$SITE_TOKEN" ]; then
-            echo "SITE_REPO is set but the SITE_TOKEN secret is missing." >&2
-            exit 1
-          fi
-          cd dist
-          touch .nojekyll
-          git init -q
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Build from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
-          # The site repo holds only build output, so its history is replaced
-          # rather than appended to.
-          git push -q --force "https://x-access-token:${SITE_TOKEN}@github.com/${SITE_REPO}.git" HEAD:main
