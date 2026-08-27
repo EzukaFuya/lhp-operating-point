@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #faf8f4; }
+  a { color: #3a6ec2; }
+  a:hover { color: #2b539a; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 3px; background: #ddd7cb; border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #3b352d; cursor: grab; border: 3px solid #faf8f4; box-shadow: 0 0 0 1px #3b352d; }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #3b352d; cursor: grab; border: 3px solid #faf8f4; }
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #faf8f4; color: #3b352d; font-family: 'IBM Plex Sans', system-ui, sans-serif; padding: 36px 42px 56px; box-sizing: border-box;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; border-bottom: 1px solid #3b352d; padding-bottom: 13px;">
+    <div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em; color: #8d8579; text-transform: uppercase;">Loop heat pipe · corresponding-states model</div>
+      <h1 style="margin: 7px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em;">Compensation-chamber temperature and the loop P–T / T–s diagrams</h1>
+    </div>
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8d8579; text-align: right; line-height: 1.85; flex-shrink: 0;">
+      generic fluid, reduced coordinates<br />
+      T<sub>r</sub> = T/T<sub>c</sub> &nbsp; P<sub>r</sub> = P/P<sub>c</sub><br />
+      r<sub>p</sub>* = {{ rpS }}
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 32px; align-items: flex-end; flex-wrap: wrap; padding: 20px 0 22px; border-bottom: 1px solid #e6e1d8;">
+    <div style="display: flex; flex-direction: column; gap: 7px; min-width: 240px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-size: 12.5px;">CC temperature &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic; font-size: 14px;">T<sub>r,8</sub></span></span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600;">{{ tccS }}</span>
+      </div>
+      <input type="range" min="0.58" max="0.92" step="0.005" value="{{ tcc }}" onChange="{{ onTcc }}" style="width: 100%;" />
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 7px; min-width: 190px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-size: 12.5px;">Heat load &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic; font-size: 14px;">Q*</span></span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600;">{{ qS }}</span>
+      </div>
+      <input type="range" min="0.1" max="3" step="0.05" value="{{ q }}" onChange="{{ onQ }}" style="width: 100%;" />
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 7px; min-width: 190px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-size: 12.5px;">Sink temperature &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic; font-size: 14px;">T<sub>r,sink</sub></span></span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600;">{{ tsinkS }}</span>
+      </div>
+      <input type="range" min="0.45" max="0.88" step="0.005" value="{{ tsink }}" onChange="{{ onTsink }}" style="width: 100%;" />
+    </div>
+    <div onClick="{{ toggleGhost }}" style="display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 11.5px; padding: 6px 13px; border: 1px solid #cfc8bb; border-radius: 999px; user-select: none; font-family: 'IBM Plex Mono', monospace; margin-bottom: 2px;" style-hover="border-color: #3b352d;">
+      <span style="width: 20px; height: 3px; background: repeating-linear-gradient(90deg, #b8b0a4 0 5px, transparent 5px 9px); display: inline-block;"></span>
+      overlay T<sub>r,8</sub> = {{ refS }}
+    </div>
+  </div>
+
+  <div style="padding-top: 22px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; gap: 24px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase;">Fig. 2 &nbsp;P–T diagram, magnified about the operating point</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898;">axes linear · state points 1–9 after the classical LHP construction</span>
+    </div>
+    <div style="overflow-x: auto;">
+      <div style="min-width: 880px;">{{ ptDetail }}</div>
+    </div>
+  </div>
+
+  <div style="padding-top: 30px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 6px;">Fig. 5 &nbsp;Pressure distribution around the loop</div>
+    <div style="overflow-x: auto;">
+      <div style="min-width: 880px;">{{ profChart }}</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 352px minmax(0, 1fr); gap: 36px; padding-top: 30px; align-items: start;">
+
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 10px;">Table 1 &nbsp;State points</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.35;">
+          <div style="display: flex; gap: 8px; padding: 0 0 6px; border-bottom: 1px solid #3b352d; color: #8d8579; font-size: 10px; letter-spacing: 0.08em;"><span style="width: 20px;">#</span><span style="flex: 1;">STATE</span><span style="width: 52px; text-align: right;">T r</span><span style="width: 58px; text-align: right;">P r</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #c2603a; font-weight: 600;">1</span><span style="flex: 1;">Meniscus, vapour side</span><span style="width: 52px; text-align: right;">{{ t1S }}</span><span style="width: 58px; text-align: right;">{{ p1S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #c2603a; font-weight: 600;">2</span><span style="flex: 1;">Vapour-groove exit</span><span style="width: 52px; text-align: right;">{{ t2S }}</span><span style="width: 58px; text-align: right;">{{ p2S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #8d8579;">2′</span><span style="flex: 1;">Saturation state at P<sub>2</sub></span><span style="width: 52px; text-align: right;">{{ t2pS }}</span><span style="width: 58px; text-align: right;">{{ p2S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #c2603a; font-weight: 600;">3</span><span style="flex: 1;">Vapour-line exit</span><span style="width: 52px; text-align: right;">{{ t3S }}</span><span style="width: 58px; text-align: right;">{{ p3S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #c2603a; font-weight: 600;">4</span><span style="flex: 1;">Onset of condensation</span><span style="width: 52px; text-align: right;">{{ t4S }}</span><span style="width: 58px; text-align: right;">{{ p4S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #3a6ec2; font-weight: 600;">5</span><span style="flex: 1;">End of condensation</span><span style="width: 52px; text-align: right;">{{ t5S }}</span><span style="width: 58px; text-align: right;">{{ p5S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #3a6ec2; font-weight: 600;">6</span><span style="flex: 1;">Condenser exit, subcooled</span><span style="width: 52px; text-align: right;">{{ t6S }}</span><span style="width: 58px; text-align: right;">{{ p6S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #3a6ec2; font-weight: 600;">7</span><span style="flex: 1;">Liquid-line exit / CC inlet</span><span style="width: 52px; text-align: right;">{{ t7S }}</span><span style="width: 58px; text-align: right;">{{ p78S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ece7de;"><span style="width: 20px; color: #3a6ec2; font-weight: 600;">8</span><span style="flex: 1;">CC, two-phase (saturated)</span><span style="width: 52px; text-align: right;">{{ t8S }}</span><span style="width: 58px; text-align: right;">{{ p78S }}</span></div>
+          <div style="display: flex; gap: 8px; padding: 6px 0;"><span style="width: 20px; color: #3a6ec2; font-weight: 600;">9</span><span style="flex: 1;">Wick liquid at meniscus</span><span style="width: 52px; text-align: right;">{{ t9S }}</span><span style="width: 58px; text-align: right;">{{ p9S }}</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 10px;">Fig. 1 &nbsp;Condenser interface position</div>
+        {{ condBar }}
+      </div>
+
+      <div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 10px;">Table 2 &nbsp;Operating point</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; line-height: 1;">
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">dP<sub>r</sub>/dT<sub>r</sub> at 8</span><span>{{ dpdtS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">T<sub>r,1</sub> − T<sub>r,8</sub></span><span>{{ dTvS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ρ<sub>v</sub>*</span><span>{{ rhovS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">h<sub>fg</sub>*</span><span>{{ hfgS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ṁ*</span><span>{{ mdotS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>GV</sub>*</span><span>{{ dpGVS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>VL</sub>*</span><span>{{ dpVLS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>COND</sub>*</span><span>{{ dpCOS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>LL</sub>*</span><span>{{ dpLLS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>WICK</sub>*</span><span>{{ dpWKS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>cap</sub>* = P<sub>1</sub> − P<sub>9</sub></span><span>{{ dpCapS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔP<sub>cap,max</sub>* = 2σ/r<sub>p</sub></span><span>{{ dpMaxS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">capillary margin</span><span>{{ marginS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">L<sub>2φ</sub>/L<sub>c</sub></span><span>{{ fS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ece7de;"><span style="color: #8d8579;">ΔT<sub>sub</sub> required</span><span>{{ subReqS }}</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 7px 0;"><span style="color: #8d8579;">ΔT<sub>sub</sub> available</span><span>{{ subAvailS }}</span></div>
+        </div>
+      </div>
+
+      <div style="border-left: 3px solid {{ statusColor }}; padding: 3px 0 3px 13px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">{{ statusTitle }}</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.75; color: #8d8579; margin-top: 4px;">{{ statusBody }}</div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 30px; min-width: 0;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 28px;">
+        <div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 6px;">Fig. 3 &nbsp;Global P–T plane</div>
+          {{ ptGlobal }}
+        </div>
+        <div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 6px;">Fig. 4 &nbsp;T–s diagram</div>
+          {{ tsChart }}
+        </div>
+      </div>
+
+
+      <div style="border-top: 1px solid #e6e1d8; padding-top: 16px;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: #8d8579; text-transform: uppercase; margin-bottom: 12px;">Governing relations</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 40px; font-family: 'Source Serif 4', serif; font-size: 15px; line-height: 1.85;">
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(1)</span><span>ln <i>P</i><sub>r</sub> = <i>A</i>(1 − 1/<i>T</i><sub>r</sub>) ,&nbsp; <i>A</i> = 7</span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(2)</span><span><i>P</i><sub>7,8</sub> = <i>P</i><sub>sat</sub>(<i>T</i><sub>8</sub>) — the CC fixes the loop pressure level</span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(3)</span><span><i>P</i><sub>1</sub> − <i>P</i><sub>9</sub> = Δ<i>P</i><sub>GV</sub> + Δ<i>P</i><sub>VL</sub> + Δ<i>P</i><sub>COND</sub> + Δ<i>P</i><sub>LL</sub> + Δ<i>P</i><sub>WICK</sub></span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(4)</span><span>Δ<i>P</i><sub>cap</sub> ≤ Δ<i>P</i><sub>cap,max</sub> = 2σ(<i>T</i><sub>8</sub>)/<i>r</i><sub>p</sub></span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(5)</span><span><i>T</i><sub>1</sub> = <i>T</i><sub>sat</sub>(<i>P</i><sub>1</sub>) ,&nbsp; <i>T</i><sub>1</sub> − <i>T</i><sub>8</sub> ≈ Δ<i>P</i><sub>ext</sub> (d<i>T</i>/d<i>P</i>)<sub>sat</sub></span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(6)</span><span>ṁ = <i>Q</i>/<i>h</i><sub>fg</sub> ,&nbsp; Δ<i>P</i><sub>v</sub> ∝ ṁ/ρ<sub>v</sub>(<i>T</i><sub>8</sub>)</span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(7)</span><span><i>Q</i> = <i>UA</i><sub>2φ</sub>(<i>T</i><sub>5</sub> − <i>T</i><sub>sink</sub>) ⇒ <i>L</i><sub>2φ</sub>/<i>L</i><sub>c</sub></span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(8)</span><span><i>Q</i><sub>leak</sub> = ṁ <i>c</i><sub>p,l</sub> Δ<i>T</i><sub>sub</sub> — CC energy balance</span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(9)</span><span>Δ<i>T</i><sub>sub,av</sub> = (<i>T</i><sub>5</sub> − <i>T</i><sub>sink</sub>)[1 − exp(−NTU<sub>sub</sub>)]</span></div>
+          <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #b0a898; width: 22px; flex-shrink: 0;">(10)</span><span><i>h</i><sub>fg</sub>* = θ<sup>0.38</sup>, σ* = θ<sup>1.26</sup>, ρ<sub>l</sub>* = θ<sup>0.28</sup>, θ = (1−<i>T</i><sub>r</sub>)/0.3</span></div>
+        </div>
+      </div>
+
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; line-height: 1.9; color: #a09889; border-top: 1px solid #e6e1d8; padding-top: 13px;">
+        Qualitative corresponding-states closure: ρ<sub>v</sub>* ∝ P<sub>r</sub>/T<sub>r</sub> (ideal gas), μ<sub>l</sub>* = exp[2.5(1/T<sub>r</sub> − 1/0.7)], all Δ<i>P</i> laminar (∝ ṁμ/ρ), c<sub>p,l</sub>* = 2.5, c<sub>p,v</sub>* = 1.4. Segment 2–3 and 3–4 carry vapour superheat; 5–6 and 6–7 carry liquid subcooling. Pressure and temperature scales in Fig. 2 are magnified about the operating point, as in the schematic construction. Study aid only — not a design correlation.
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;refTcc&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0.78,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0.58,&quot;max&quot;:0.92,&quot;step&quot;:0.005,&quot;section&quot;:&quot;Overlay&quot;,&quot;label&quot;:&quot;Reference T r,cc&quot;},&quot;poreRadius&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:1.0,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0.2,&quot;max&quot;:5,&quot;step&quot;:0.1,&quot;section&quot;:&quot;Wick&quot;,&quot;label&quot;:&quot;Effective pore radius r p*&quot;}}">
+class Component extends DCLogic {
+  state = { tcc: 0.72, q: 1.0, tsink: 0.6, ghost: true };
+
+  A = 7.0;
+  CV = { Cg: 0.003, Cv: 0.010, Cc: 0.008, Cl: 0.002, Cw: 0.005, Ca: 0.06, Kc: 12, Ks: 0.8, Ge: 40, Gw: 1.2, Ga: 0.4, tamb: 0.75, cpl: 2.5, cpv: 1.4 };
+
+  pr(tr) { return Math.exp(this.A * (1 - 1 / tr)); }
+  trs(p) { return 1 / (1 - Math.log(Math.max(1e-12, p)) / this.A); }
+  dpdt(tr) { return this.pr(tr) * this.A / (tr * tr); }
+  th(tr) { return Math.max(1e-4, (1 - tr) / 0.3); }
+  hfg(tr) { return Math.pow(this.th(tr), 0.38); }
+  sig(tr) { return Math.pow(this.th(tr), 1.26); }
+  rhov(tr) { return (this.pr(tr) / tr) / 0.07112; }
+  rhol(tr) { return Math.pow(this.th(tr), 0.28); }
+  mul(tr) { return Math.exp(2.5 * (1 / tr - 1 / 0.7)); }
+  sl(tr) { return this.CV.cpl * Math.log(tr / 0.5); }
+  sv(tr) { return this.sl(tr) + this.CV.cpl * this.hfg(tr) / tr; }
+  ssh(tr, prv) { const ts = this.trs(prv); return this.sv(ts) + this.CV.cpv * Math.log(Math.max(1e-6, tr / ts)); }
+
+  solve(t8, q, tsink) {
+    const K = this.CV, rp = this.props.poreRadius ?? 1.0;
+    const P78 = this.pr(t8), hfg = this.hfg(t8), mdot = q / hfg;
+    const rv = this.rhov(t8), rl = this.rhol(t8), mu = this.mul(t8);
+    const f = Math.min(1, q / (K.Kc * Math.max(0.004, t8 - tsink)));
+    const dpGV = K.Cg * mdot / rv, dpVL = K.Cv * mdot / rv;
+    const dpCO = K.Cc * f * mdot / rv;
+    const dpLL = K.Cl * mu * mdot / rl, dpWK = K.Cw * mu * mdot / rl;
+    const dpCap = dpGV + dpVL + dpCO + dpLL + dpWK;
+    const dpMax = K.Ca * this.sig(t8) / rp;
+    const P7 = P78, P6 = P78 + dpLL, P5 = P6 + 0.15 * dpCO, P4 = P5 + 0.75 * dpCO,
+      P3 = P4 + 0.10 * dpCO, P2 = P3 + dpVL, P1 = P2 + dpGV, P9 = P78 - dpWK;
+    const T1 = this.trs(P1), sup = q / K.Ge, T2 = T1 + sup;
+    const T2p = this.trs(P2), sh2 = Math.max(0, T2 - T2p);
+    const T3 = this.trs(P3) + 0.45 * sh2, T4 = this.trs(P4), T5 = this.trs(P5);
+    const qleak = K.Gw * (T1 + sup - t8) + K.Ga * Math.max(0, K.tamb - t8);
+    const subReq = qleak / Math.max(1e-6, mdot * K.cpl);
+    const ntu = K.Ks * (1 - f) / Math.max(1e-6, mdot);
+    const subAv = Math.max(0, T5 - tsink) * (1 - Math.exp(-ntu));
+    const sub = Math.min(subReq, subAv);
+    const T6 = T5 - sub;
+    const T7 = Math.min(t8 - 0.002, T6 + 0.15 * Math.max(0, K.tamb - T6));
+    return { t8, q, tsink, P78, P7, P6, P5, P4, P3, P2, P1, P9, T1, T2, T2p, T3, T4, T5, T6, T7, T9: T1,
+      hfg, mdot, rv, rl, f, dpGV, dpVL, dpCO, dpLL, dpWK, dpCap, dpMax, subReq, subAv, sub, qleak,
+      dpdt: this.dpdt(t8), margin: 1 - dpCap / dpMax };
+  }
+
+  // --- svg utils ---
+  sc(o) {
+    const ya = o.logy ? Math.log10(o.yr[0]) : o.yr[0], yb = o.logy ? Math.log10(o.yr[1]) : o.yr[1];
+    return { X: v => o.ml + (v - o.xr[0]) / (o.xr[1] - o.xr[0]) * (o.w - o.ml - o.mr),
+      Y: v => o.h - o.mb - ((o.logy ? Math.log10(Math.max(1e-12, v)) : v) - ya) / (yb - ya) * (o.h - o.mt - o.mb) };
+  }
+  frame(o, S, opt) {
+    const e = React.createElement, out = [], g = (opt || {});
+    (o.xticks || []).forEach((t, i) => { const x = S.X(t);
+      if (!g.noGridX) out.push(e('line', { key: 'xg' + i, x1: x, x2: x, y1: o.mt, y2: o.h - o.mb, stroke: '#ece7de' }));
+      out.push(e('text', { key: 'xt' + i, x, y: o.h - o.mb + 15, textAnchor: 'middle', fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, o.xfmt(t))); });
+    (o.yticks || []).forEach((t, i) => { const y = S.Y(t);
+      if (!g.noGridY) out.push(e('line', { key: 'yg' + i, x1: o.ml, x2: o.w - o.mr, y1: y, y2: y, stroke: '#ece7de' }));
+      out.push(e('text', { key: 'yt' + i, x: o.ml - 7, y: y + 3.3, textAnchor: 'end', fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, o.yfmt(t))); });
+    out.push(e('rect', { key: 'bx', x: o.ml, y: o.mt, width: o.w - o.ml - o.mr, height: o.h - o.mt - o.mb, fill: 'none', stroke: '#3b352d', strokeWidth: 1.2 }));
+    if (o.xlab) out.push(e('text', { key: 'xl', x: (o.ml + o.w - o.mr) / 2, y: o.h - 3, textAnchor: 'middle', fill: '#3b352d', fontSize: 12, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, o.xlab));
+    if (o.ylab) out.push(e('text', { key: 'yl', x: 13, y: (o.mt + o.h - o.mb) / 2, textAnchor: 'middle', fill: '#3b352d', fontSize: 12, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic', transform: 'rotate(-90 13 ' + ((o.mt + o.h - o.mb) / 2) + ')' }, o.ylab));
+    return out;
+  }
+  decol(items, key, gap) {
+    const s = items.map((v, i) => ({ i, p: v[key], o: v[key] })).sort((a, b) => a.p - b.p);
+    for (let k = 1; k < s.length; k++) if (s[k].p - s[k - 1].p < gap) s[k].p = s[k - 1].p + gap;
+    let shift = 0;
+    const last = s[s.length - 1];
+    if (last) shift = 0;
+    const out = items.slice();
+    s.forEach(e2 => { out[e2.i] = Object.assign({}, items[e2.i]); out[e2.i][key] = e2.p; out[e2.i].orig = e2.o; });
+    return out;
+  }
+  labels(o, S, items) {
+    const e = React.createElement, out = [];
+    const pts = items.map(it => ({ lbl: it.lbl, sx: S.X(it.x), sy: S.Y(it.y), side: it.side }));
+    pts.forEach((p, i) => out.push(e('circle', { key: 'nd' + i, cx: p.sx, cy: p.sy, r: 4.3, fill: '#e08a3c', stroke: '#7a4a12', strokeWidth: 1.1 })));
+    ['L', 'R'].forEach(sd => {
+      const grp = pts.filter(p => p.side === sd);
+      if (!grp.length) return;
+      const rows = this.decol(grp.map(p => ({ p, y: p.sy })), 'y', 15);
+      let mo = 0, mn = 0;
+      rows.forEach(R => { mo += R.orig; mn += R.y; });
+      const sh = (mn - mo) / rows.length;
+      rows.forEach((R, i) => {
+        const ly = Math.min(o.h - o.mb - 7, Math.max(o.mt + 9, R.y - sh));
+        let dir = sd === 'L' ? -1 : 1;
+        let lx = R.p.sx + dir * 30;
+        if (lx < o.ml + 22) { dir = 1; lx = R.p.sx + 30; }
+        else if (lx > o.w - o.mr - 22) { dir = -1; lx = R.p.sx - 30; }
+        out.push(e('path', { key: sd + 'ld' + i, d: 'M' + (R.p.sx + dir * 5).toFixed(1) + ' ' + R.p.sy.toFixed(1) + 'L' + (R.p.sx + dir * 19).toFixed(1) + ' ' + ly.toFixed(1) + 'L' + (lx - dir * 4).toFixed(1) + ' ' + ly.toFixed(1), fill: 'none', stroke: '#cfc8bb', strokeWidth: 0.9 }));
+        out.push(e('text', { key: sd + 'lt' + i, x: lx, y: ly + 4, textAnchor: dir < 0 ? 'end' : 'start', fill: '#3b352d', fontSize: 12, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, R.p.lbl));
+      });
+    });
+    return out;
+  }
+  d(pts, S) { return pts.map((p, i) => (i ? 'L' : 'M') + S.X(p[0]).toFixed(2) + ' ' + S.Y(p[1]).toFixed(2)).join(' '); }
+  node(k, x, y, S, lbl, dx, dy, anchor) {
+    const e = React.createElement, o = [e('circle', { key: k + 'c', cx: S.X(x), cy: S.Y(y), r: 4.3, fill: '#e08a3c', stroke: '#7a4a12', strokeWidth: 1.1 })];
+    if (lbl) o.push(e('text', { key: k + 't', x: S.X(x) + dx, y: S.Y(y) + dy, textAnchor: anchor || 'middle', fill: '#3b352d', fontSize: 12, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, lbl));
+    return o;
+  }
+
+  // --- Fig 2: magnified P-T ---
+  ptDetail(r) {
+    const e = React.createElement;
+    const Ts = [r.T1, r.T2, r.T2p, r.T3, r.T4, r.T5, r.T6, r.T7, r.t8, r.T9];
+    const Ps = [r.P1, r.P2, r.P3, r.P4, r.P5, r.P6, r.P78, r.P9];
+    let tlo = Math.min.apply(null, Ts), thi = Math.max.apply(null, Ts);
+    let plo = Math.min.apply(null, Ps), phi = Math.max.apply(null, Ps);
+    const tp = Math.max(1e-4, (thi - tlo) * 0.10), pp = Math.max(1e-6, (phi - plo) * 0.14);
+    const o = { w: 980, h: 470, ml: 150, mr: 34, mt: 26, mb: 62, xr: [tlo - tp * 1.4, thi + tp], yr: [plo - pp, phi + pp],
+      xticks: [], yticks: [], xfmt: v => v, yfmt: v => v, xlab: 'Temperature  T r', ylab: '' };
+    const S = this.sc(o), c = [], cid = 'clip-ptd';
+    c.push(e('defs', { key: 'df' }, e('clipPath', { id: cid }, e('rect', { x: o.ml, y: o.mt, width: o.w - o.ml - o.mr, height: o.h - o.mt - o.mb }))));
+    c.push(...this.frame(o, S));
+    c.push(e('text', { key: 'ylh', x: 0, y: 12, fill: '#3b352d', fontSize: 12, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, 'Pressure  P r  ↑'));
+
+    // saturation (dP/dT) curve
+    const sat = []; for (let i = 0; i <= 140; i++) { const t = o.xr[0] + (o.xr[1] - o.xr[0]) * i / 140; sat.push([t, this.pr(t)]); }
+    c.push(e('g', { key: 'satg', clipPath: 'url(#' + cid + ')' },
+      e('path', { d: this.d(sat, S), fill: 'none', stroke: '#6b3f8c', strokeWidth: 2.6 })));
+    c.push(e('text', { key: 'satl', x: o.w - o.mr - 12, y: o.mt + 20, textAnchor: 'end', fill: '#6b3f8c', fontSize: 12, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, '(dP/dT) sat curve'));
+
+    // pressure levels: label, dashed line, value
+    const lv = [['P₁', r.P1, r.T1], ['P₂', r.P2, r.T2], ['P₃', r.P3, r.T3], ['P₄', r.P4, r.T4],
+      ['P₅', r.P5, r.T5], ['P₆', r.P6, r.T6], ['P₇,₈', r.P78, r.t8], ['P₉', r.P9, r.T9]];
+    const lrow = this.decol(lv.map(L => ({ lbl: L[0], p: L[1], t: L[2], y: S.Y(L[1]) })), 'y', 15);
+    lrow.forEach((L, i) => {
+      const ty = S.Y(L.p);
+      c.push(e('line', { key: 'pl' + i, x1: 126, x2: S.X(L.t), y1: ty, y2: ty, stroke: '#8d8579', strokeWidth: 0.9, strokeDasharray: '5 4' }));
+      c.push(e('path', { key: 'pld' + i, d: 'M96 ' + L.y.toFixed(1) + 'L112 ' + L.y.toFixed(1) + 'L126 ' + ty.toFixed(1), fill: 'none', stroke: '#cfc8bb', strokeWidth: 0.8 }));
+      c.push(e('text', { key: 'pt' + i, x: 72, y: L.y + 4, fill: '#3b352d', fontSize: 12.5, fontFamily: 'IBM Plex Mono, monospace', fontWeight: 500 }, L.lbl));
+    });
+    // dP brackets
+    const br = [['ΔP GV', r.P1, r.P2], ['ΔP VL', r.P2, r.P3], ['ΔP COND', r.P3, r.P5], ['ΔP LL', r.P6, r.P78], ['ΔP WICK', r.P78, r.P9]];
+    const bx = 64;
+    br.forEach((B, i) => {
+      const y1 = S.Y(B[1]), y2 = S.Y(B[2]);
+      if (Math.abs(y2 - y1) < 9) return;
+      c.push(e('line', { key: 'bl' + i, x1: bx, x2: bx, y1: y1, y2: y2, stroke: '#3b352d', strokeWidth: 1 }));
+      c.push(e('path', { key: 'ba' + i, d: 'M' + (bx - 3.2) + ' ' + (y1 + 4.5) + 'L' + bx + ' ' + y1 + 'L' + (bx + 3.2) + ' ' + (y1 + 4.5) + ' M' + (bx - 3.2) + ' ' + (y2 - 4.5) + 'L' + bx + ' ' + y2 + 'L' + (bx + 3.2) + ' ' + (y2 - 4.5), fill: 'none', stroke: '#3b352d', strokeWidth: 1 }));
+      c.push(e('text', { key: 'bt' + i, x: bx - 7, y: (y1 + y2) / 2 + 3.5, textAnchor: 'end', fill: '#3b352d', fontSize: 10.5, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, B[0]));
+    });
+    // temperature ticks
+    const tl = [['T₆', r.T6, r.P6], ['T₇', r.T7, r.P78], ['T₈', r.t8, r.P78], ['T₅', r.T5, r.P5], ['T₄', r.T4, r.P4],
+      ['T₃', r.T3, r.P3], ['T₁', r.T1, r.P1], ['T₂', r.T2, r.P2]];
+    const trow = this.decol(tl.map(L => ({ lbl: L[0], t: L[1], p: L[2], x: S.X(L[1]) })), 'x', 15);
+    const yb = o.h - o.mb;
+    trow.forEach((L, i) => {
+      const tx = S.X(L.t);
+      c.push(e('line', { key: 'tl' + i, x1: tx, x2: tx, y1: S.Y(L.p), y2: yb, stroke: '#8d8579', strokeWidth: 0.9, strokeDasharray: '5 4' }));
+      c.push(e('path', { key: 'tld' + i, d: 'M' + tx.toFixed(1) + ' ' + yb + 'L' + tx.toFixed(1) + ' ' + (yb + 7) + 'L' + L.x.toFixed(1) + ' ' + (yb + 15), fill: 'none', stroke: '#cfc8bb', strokeWidth: 0.8 }));
+      c.push(e('text', { key: 'tt' + i, x: L.x, y: yb + 27, textAnchor: 'middle', fill: '#3b352d', fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, L.lbl));
+    });
+    // vapour branch 9-1-2-3-4
+    c.push(e('path', { key: 'vb', d: this.d([[r.T9, r.P9], [r.T1, r.P1], [r.T2, r.P2], [r.T3, r.P3], [r.T4, r.P4]], S), fill: 'none', stroke: '#cf3a2a', strokeWidth: 2.6, strokeLinejoin: 'round' }));
+    // liquid branch 4-5-6-7-8
+    c.push(e('path', { key: 'lb', d: this.d([[r.T4, r.P4], [r.T5, r.P5], [r.T6, r.P6], [r.T7, r.P78], [r.t8, r.P78]], S), fill: 'none', stroke: '#2f2f9e', strokeWidth: 2.6, strokeLinejoin: 'round' }));
+    // wick 8-9
+    c.push(e('path', { key: 'wk', d: this.d([[r.t8, r.P78], [r.T9, r.P9]], S), fill: 'none', stroke: '#8e2b6b', strokeWidth: 2.6 }));
+    // nodes
+    c.push(...this.node('n1', r.T1, r.P1, S, '1', -6, -10, 'end'));
+    c.push(...this.node('n2', r.T2, r.P2, S, '2', 10, 4, 'start'));
+    c.push(...this.node('n2p', r.T2p, r.P2, S, "2′", -4, -10, 'end'));
+    c.push(...this.node('n3', r.T3, r.P3, S, '3', 10, 4, 'start'));
+    c.push(...this.node('n4', r.T4, r.P4, S, '4', 8, 12, 'start'));
+    c.push(...this.node('n5', r.T5, r.P5, S, '5', -7, -8, 'end'));
+    c.push(...this.node('n6', r.T6, r.P6, S, '6', -6, 15, 'end'));
+    c.push(...this.node('n7', r.T7, r.P78, S, '7', 0, -11, 'middle'));
+    c.push(...this.node('n8', r.t8, r.P78, S, '8', 0, -11, 'middle'));
+    c.push(...this.node('n9', r.T9, r.P9, S, '9', 10, 5, 'start'));
+    // capillary jump annotation
+    c.push(e('text', { key: 'cap', x: o.ml + 10, y: o.mt + 16, fill: '#cf3a2a', fontSize: 10.5, fontFamily: 'IBM Plex Mono, monospace' }, 'ΔP cap = P₁ − P₉ = ' + r.dpCap.toFixed(4)));
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- Fig 3: global P-T ---
+  ptGlobal(r, g) {
+    const e = React.createElement;
+    const o = { w: 440, h: 320, ml: 54, mr: 58, mt: 16, mb: 40, xr: [0.5, 1.0], yr: [1.2e-3, 1.4], logy: true,
+      xticks: [0.6, 0.7, 0.8, 0.9, 1.0], yticks: [1e-3, 1e-2, 1e-1, 1],
+      xfmt: v => v.toFixed(1), yfmt: v => ({ '0.001': '10⁻³', '0.01': '10⁻²', '0.1': '10⁻¹', '1': '1' })[String(v)] || v,
+      xlab: 'T r', ylab: 'P r  (log)' };
+    const S = this.sc(o), c = [];
+    c.push(...this.frame(o, S));
+    const sat = []; for (let t = 0.5; t <= 1.0001; t += 0.005) sat.push([t, this.pr(t)]);
+    c.push(e('path', { key: 'sat', d: this.d(sat, S), fill: 'none', stroke: '#6b3f8c', strokeWidth: 2.2 }));
+    c.push(e('circle', { key: 'cp', cx: S.X(1), cy: S.Y(1), r: 3.2, fill: '#faf8f4', stroke: '#3b352d', strokeWidth: 1.5 }));
+    c.push(e('text', { key: 'cpt', x: S.X(1) - 5, y: S.Y(1) - 9, textAnchor: 'end', fill: '#3b352d', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'CP'));
+    c.push(e('text', { key: 'lq', x: S.X(0.545), y: S.Y(0.42), fill: '#2f2f9e', fontSize: 10, fontFamily: 'IBM Plex Mono, monospace' }, 'liquid'));
+    c.push(e('text', { key: 'vp', x: S.X(0.84), y: S.Y(3.2e-3), fill: '#cf3a2a', fontSize: 10, fontFamily: 'IBM Plex Mono, monospace' }, 'vapour'));
+    const box = m => {
+      const t1 = Math.min(m.T6, m.T7), t2 = Math.max(m.T2, m.T1), p1 = m.P9, p2 = m.P1;
+      return [[t1, p1], [t2, p1], [t2, p2], [t1, p2], [t1, p1]];
+    };
+    if (g) {
+      c.push(e('path', { key: 'gb', d: this.d(box(g), S), fill: 'none', stroke: '#b8b0a4', strokeWidth: 1.4, strokeDasharray: '5 4' }));
+      c.push(e('circle', { key: 'gd', cx: S.X(g.t8), cy: S.Y(g.P78), r: 3, fill: '#b8b0a4' }));
+    }
+    c.push(e('path', { key: 'bx', d: this.d(box(r), S), fill: '#cf3a2a', fillOpacity: 0.08, stroke: '#cf3a2a', strokeWidth: 1.6 }));
+    c.push(e('circle', { key: 'op', cx: S.X(r.t8), cy: S.Y(r.P78), r: 4.3, fill: '#e08a3c', stroke: '#7a4a12', strokeWidth: 1.1 }));
+    c.push(e('text', { key: 'opt', x: S.X(r.t8) - 8, y: S.Y(r.P78) + 14, textAnchor: 'end', fill: '#3b352d', fontSize: 11, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, '8'));
+    c.push(e('line', { key: 'hl', x1: o.ml, x2: o.w - o.mr, y1: S.Y(r.P78), y2: S.Y(r.P78), stroke: '#cf3a2a', strokeWidth: 0.9, strokeDasharray: '3 3' }));
+    c.push(e('text', { key: 'hlt', x: o.w - o.mr + 6, y: S.Y(r.P78) + 3.4, fill: '#cf3a2a', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, r.P78.toFixed(4)));
+    c.push(e('text', { key: 'zn', x: o.ml + 8, y: o.mt + 14, fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'box = extent of Fig. 2'));
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- Fig 4: T-s ---
+  tsChart(r, g) {
+    const e = React.createElement;
+    const o = { w: 440, h: 320, ml: 54, mr: 24, mt: 16, mb: 40, xr: [0, 6.4], yr: [0.48, 1.05],
+      xticks: [0, 1, 2, 3, 4, 5, 6], yticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+      xfmt: v => v, yfmt: v => v.toFixed(1), xlab: 's *', ylab: 'T r' };
+    const S = this.sc(o), c = [];
+    c.push(...this.frame(o, S));
+    const dl = [], dv = [];
+    for (let t = 0.5; t <= 1.0001; t += 0.005) { dl.push([this.sl(t), t]); dv.push([this.sv(t), t]); }
+    c.push(e('path', { key: 'dl', d: this.d(dl, S), fill: 'none', stroke: '#2f2f9e', strokeWidth: 1.8 }));
+    c.push(e('path', { key: 'dv', d: this.d(dv, S), fill: 'none', stroke: '#cf3a2a', strokeWidth: 1.8 }));
+    c.push(e('circle', { key: 'cp', cx: S.X(this.sl(1)), cy: S.Y(1), r: 3.2, fill: '#faf8f4', stroke: '#3b352d', strokeWidth: 1.5 }));
+    c.push(e('text', { key: 'cpt', x: S.X(this.sl(1)), y: S.Y(1) - 9, textAnchor: 'middle', fill: '#3b352d', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'CP'));
+    const cyc = m => [[this.sl(m.t8), m.t8], [this.sl(m.T9), m.T9], [this.sv(m.T1), m.T1],
+      [this.ssh(m.T2, m.P2), m.T2], [this.ssh(m.T3, m.P3), m.T3], [this.sv(m.T4), m.T4],
+      [this.sl(m.T5), m.T5], [this.sl(m.T6), m.T6], [this.sl(m.T7), m.T7], [this.sl(m.t8), m.t8]];
+    if (g) c.push(e('path', { key: 'gc', d: this.d(cyc(g), S), fill: 'none', stroke: '#b8b0a4', strokeWidth: 1.4, strokeDasharray: '5 4' }));
+    c.push(e('path', { key: 'cy', d: this.d(cyc(r), S), fill: '#cf3a2a', fillOpacity: 0.07, stroke: '#cf3a2a', strokeWidth: 2.2, strokeLinejoin: 'round' }));
+    c.push.apply(c, this.labels(o, S, [
+      { lbl: '1', x: this.sv(r.T1), y: r.T1, side: 'R' },
+      { lbl: '2', x: this.ssh(r.T2, r.P2), y: r.T2, side: 'R' },
+      { lbl: '4', x: this.sv(r.T4), y: r.T4, side: 'R' },
+      { lbl: '9', x: this.sl(r.T9), y: r.T9, side: 'L' },
+      { lbl: '5', x: this.sl(r.T5), y: r.T5, side: 'L' },
+      { lbl: '8', x: this.sl(r.t8), y: r.t8, side: 'L' },
+      { lbl: '6', x: this.sl(r.T6), y: r.T6, side: 'L' }
+    ]));
+    const ds = this.sv(r.T1) - this.sl(r.T1);
+    c.push(e('text', { key: 'dsl', x: (S.X(this.sl(r.T1)) + S.X(this.sv(r.T1))) / 2, y: S.Y(r.T1) - 11, textAnchor: 'middle', fill: '#cf3a2a', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'Δs = ' + ds.toFixed(2)));
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- Fig 5: pressure distribution ---
+  profChart(r) {
+    const e = React.createElement;
+    const st = [['8', r.P78], ['9', r.P9], ['1', r.P1], ['2', r.P2], ['3', r.P3], ['4', r.P4], ['5', r.P5], ['6', r.P6], ['7', r.P7], ['8', r.P78]];
+    const vs = st.map(s => s[1]), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), pd = (hi - lo) * 0.22;
+    const o = { w: 980, h: 240, ml: 76, mr: 130, mt: 22, mb: 46, xr: [0, 9], yr: [lo - pd, hi + pd],
+      xticks: [], yticks: [lo - pd * 0.5, (lo + hi) / 2, hi + pd * 0.5], xfmt: v => v, yfmt: v => v.toFixed(4), xlab: '', ylab: 'P r' };
+    const S = this.sc(o), c = [];
+    c.push(...this.frame(o, S));
+    c.push(e('line', { key: 'zz', x1: o.ml, x2: o.w - o.mr, y1: S.Y(r.P78), y2: S.Y(r.P78), stroke: '#8d8579', strokeWidth: 0.9, strokeDasharray: '4 4' }));
+    c.push(e('text', { key: 'zzt', x: o.w - o.mr + 6, y: S.Y(r.P78) + 3.4, fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'P 7,8 (CC)'));
+    const pts = st.map((s, i) => [i, s[1]]);
+    c.push(e('path', { key: 'a', d: this.d(pts.slice(0, 2), S), fill: 'none', stroke: '#8e2b6b', strokeWidth: 2.4 }));
+    c.push(e('path', { key: 'b', d: this.d(pts.slice(1, 6), S), fill: 'none', stroke: '#cf3a2a', strokeWidth: 2.4, strokeLinejoin: 'round' }));
+    c.push(e('path', { key: 'cc', d: this.d(pts.slice(5, 10), S), fill: 'none', stroke: '#2f2f9e', strokeWidth: 2.4, strokeLinejoin: 'round' }));
+    const seg = [['ΔP WICK', 0, 1], ['ΔP cap', 1, 2], ['ΔP GV', 2, 3], ['ΔP VL', 3, 4], ['ΔP COND', 4, 7], ['ΔP LL', 8, 9]];
+    seg.forEach((g2, i) => {
+      const xm = (S.X(g2[1]) + S.X(g2[2])) / 2, ym = Math.min(S.Y(st[g2[1]][1]), S.Y(st[g2[2]][1])) - 14;
+      c.push(e('text', { key: 'sg' + i, x: xm, y: ym, textAnchor: 'middle', fill: i === 1 ? '#cf3a2a' : '#8d8579', fontSize: 10, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, g2[0]));
+    });
+    pts.forEach((p, i) => {
+      c.push(e('circle', { key: 'd' + i, cx: S.X(p[0]), cy: S.Y(p[1]), r: 3.8, fill: '#e08a3c', stroke: '#7a4a12', strokeWidth: 1 }));
+      c.push(e('text', { key: 'l' + i, x: S.X(p[0]), y: o.h - o.mb + 17, textAnchor: 'middle', fill: '#3b352d', fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, st[i][0]));
+      c.push(e('text', { key: 'v' + i, x: S.X(p[0]), y: o.h - o.mb + 29, textAnchor: 'middle', fill: '#b0a898', fontSize: 8.5, fontFamily: 'IBM Plex Mono, monospace' }, p[1].toFixed(4)));
+    });
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- Fig 1: condenser interface ---
+  condBar(r) {
+    const e = React.createElement, w = 330, h = 74, x0 = 4, x1 = w - 4;
+    const xf = x0 + (x1 - x0) * Math.min(0.94, Math.max(0.06, r.f));
+    const c = [];
+    c.push(e('rect', { key: 'a', x: x0, y: 16, width: xf - x0, height: 22, fill: '#cf3a2a', fillOpacity: 0.18, stroke: '#cf3a2a', strokeWidth: 1 }));
+    c.push(e('rect', { key: 'b', x: xf, y: 16, width: x1 - xf, height: 22, fill: '#2f2f9e', fillOpacity: 0.14, stroke: '#2f2f9e', strokeWidth: 1 }));
+    c.push(e('line', { key: 'i', x1: xf, x2: xf, y1: 8, y2: 46, stroke: '#3b352d', strokeWidth: 1.6 }));
+    c.push(e('text', { key: 'l1', x: x0, y: 10, fill: '#cf3a2a', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'two-phase'));
+    c.push(e('text', { key: 'l2', x: x1, y: 10, textAnchor: 'end', fill: '#2f2f9e', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'subcooled liquid'));
+    c.push(e('text', { key: 'l3', x: x0, y: 55, fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, '4'));
+    c.push(e('text', { key: 'l4', x: xf, y: 55, textAnchor: 'middle', fill: '#3b352d', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, '5'));
+    c.push(e('text', { key: 'l5', x: x1, y: 55, textAnchor: 'end', fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, '6'));
+    c.push(e('text', { key: 'l6', x: x0, y: 70, fill: '#8d8579', fontSize: 9.5, fontFamily: 'IBM Plex Mono, monospace' }, 'L 2φ / L c = ' + r.f.toFixed(3) + '   ΔT sub = ' + r.sub.toFixed(4)));
+    return e('svg', { viewBox: '0 0 ' + w + ' ' + h, style: { width: '100%', height: 'auto', display: 'block' } }, c);
+  }
+
+  renderVals() {
+    const { tcc, q, tsink, ghost } = this.state;
+    const ref = this.props.refTcc ?? 0.78;
+    const r = this.solve(tcc, q, tsink);
+    const g = ghost ? this.solve(ref, q, tsink) : null;
+    let statusTitle, statusBody, statusColor;
+    if (r.dpCap >= r.dpMax) {
+      statusColor = '#cf3a2a'; statusTitle = 'Capillary limit exceeded';
+      statusBody = 'ΔP cap > 2σ/r p — the meniscus recedes into the wick and the evaporator dries out. This operating point does not exist.';
+    } else if (r.subReq > r.subAv) {
+      statusColor = '#cf3a2a'; statusTitle = 'Variable-conductance branch';
+      statusBody = 'Required subcooling exceeds what the condenser can deliver. T r,8 rises of its own accord until the CC energy balance closes.';
+    } else if (r.margin < 0.25) {
+      statusColor = '#c9a227'; statusTitle = 'Feasible, low margin';
+      statusBody = 'Capillary margin ' + (r.margin * 100).toFixed(0) + '% — raise T r,8 to gain vapour density, or enlarge the vapour line.';
+    } else {
+      statusColor = '#4a7c59'; statusTitle = 'Fixed-conductance branch';
+      statusBody = 'Both the capillary head and the subcooling budget have margin; T r,8 follows the sink temperature and heat load.';
+    }
+    const f4 = v => v.toFixed(4), f3 = v => v.toFixed(3);
+    return {
+      tcc, q, tsink,
+      tccS: tcc.toFixed(3), qS: q.toFixed(2), tsinkS: tsink.toFixed(3), refS: ref.toFixed(3),
+      rpS: (this.props.poreRadius ?? 1.0).toFixed(2),
+      t1S: f3(r.T1), t2S: f3(r.T2), t2pS: f3(r.T2p), t3S: f3(r.T3), t4S: f3(r.T4), t5S: f3(r.T5),
+      t6S: f3(r.T6), t7S: f3(r.T7), t8S: f3(r.t8), t9S: f3(r.T9),
+      p1S: f4(r.P1), p2S: f4(r.P2), p3S: f4(r.P3), p4S: f4(r.P4), p5S: f4(r.P5), p6S: f4(r.P6), p78S: f4(r.P78), p9S: f4(r.P9),
+      dpdtS: r.dpdt.toFixed(3), dTvS: (r.T1 - r.t8).toFixed(4),
+      rhovS: r.rv.toFixed(3), hfgS: r.hfg.toFixed(3), mdotS: r.mdot.toFixed(3),
+      dpGVS: f4(r.dpGV), dpVLS: f4(r.dpVL), dpCOS: f4(r.dpCO), dpLLS: f4(r.dpLL), dpWKS: f4(r.dpWK),
+      dpCapS: f4(r.dpCap), dpMaxS: f4(r.dpMax), marginS: (r.margin * 100).toFixed(0) + ' %',
+      fS: r.f.toFixed(3), subReqS: f4(r.subReq), subAvailS: f4(r.subAv),
+      statusTitle, statusBody, statusColor,
+      ptDetail: this.ptDetail(r), ptGlobal: this.ptGlobal(r, g), tsChart: this.tsChart(r, g), profChart: this.profChart(r), condBar: this.condBar(r),
+      onTcc: ev => this.setState({ tcc: +ev.target.value }),
+      onQ: ev => this.setState({ q: +ev.target.value }),
+      onTsink: ev => this.setState({ tsink: +ev.target.value }),
+      toggleGhost: () => this.setState(s => ({ ghost: !s.ghost }))
+    };
+  }
+}
+</script>
+</body>
+</html>

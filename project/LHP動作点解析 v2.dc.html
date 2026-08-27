@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #faf8f4; }
+  a { color: #2f5fb0; }
+  a:hover { color: #23478a; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; background: #c4bcac; border-radius: 3px; outline: none; padding: 9px 0; background-clip: content-box; }
+  input[type=range]:focus-visible { outline: 2px solid #2f5fb0; outline-offset: 4px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #33302a; cursor: grab; border: 4px solid #faf8f4; box-shadow: 0 0 0 1px #33302a; }
+  input[type=range]::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: #33302a; cursor: grab; border: 4px solid #faf8f4; }
+  input[type=number] { font-family: 'IBM Plex Mono', monospace; font-size: 14.5px; color: #33302a; background: #fff; border: 1px solid #a39b8c; border-radius: 4px; padding: 8px 9px; width: 82px; }
+  tr:focus-visible { outline: 2px solid #2f5fb0; outline-offset: -2px; }
+  svg [role=button]:focus-visible { outline: 2px solid #2f5fb0; }
+  input[type=number]:focus { outline: 2px solid #2f5fb0; outline-offset: 1px; border-color: #2f5fb0; }
+  button { font-family: 'IBM Plex Mono', monospace; cursor: pointer; }
+  tr:hover { background: #f3efe6; }
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #faf8f4; color: #33302a; font-family: 'IBM Plex Sans', system-ui, sans-serif; padding: 34px 40px 60px; box-sizing: border-box;">
+
+  <div style="max-width: 1560px; margin: 0 auto;">
+
+    <div style="border-bottom: 1px solid #33302a; padding-bottom: 15px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #5c5648; text-transform: uppercase;">Loop heat pipe · interactive study model</div>
+      <h1 style="margin: 8px 0 0; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; max-width: 24em; text-wrap: pretty;">How the compensation chamber sets the loop operating point</h1>
+      <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.7; color: #4a453c; max-width: 62em; text-wrap: pretty;">The CC is the only saturated volume in the loop, so its temperature fixes the pressure level everything else hangs from. Move the three inputs and watch where the cycle sits on the saturation curve, how much capillary head is left, and whether the returning liquid can carry the parasitic heat leak away. All quantities are reduced (divided by their critical-point values); the closure is a qualitative corresponding-states fit, not a design correlation.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 26px 38px; padding: 24px 0 22px; border-bottom: 1px solid #e3ddd2;">
+
+      <div style="display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; min-height: 46px;">
+          <label for="in-tcc" style="font-size: 13.5px; font-weight: 500;">CC temperature &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic;">T</span><sub style="font-family: 'IBM Plex Mono', monospace; font-size: 10px;">r,cc</sub></label>
+          <input id="in-tcc" type="number" min="0.58" max="0.92" step="0.005" value="{{ tcc }}" onChange="{{ onTccNum }}" aria-label="CC temperature, reduced" />
+        </div>
+        <input type="range" min="0.58" max="0.92" step="0.005" value="{{ tcc }}" onChange="{{ onTcc }}" aria-label="CC temperature slider" style="width: 100%;" />
+        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648;">
+          <span>0.580</span><span style="color: #6b6456;">T / T<sub>c</sub> — dimensionless</span><span>0.920</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; min-height: 46px;">
+          <label for="in-q" style="font-size: 13.5px; font-weight: 500;">Heat load &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic;">Q</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px;">*</span></label>
+          <input id="in-q" type="number" min="0.1" max="3" step="0.05" value="{{ q }}" onChange="{{ onQNum }}" aria-label="Heat load, reduced" />
+        </div>
+        <input type="range" min="0.1" max="3" step="0.05" value="{{ q }}" onChange="{{ onQ }}" aria-label="Heat load slider" style="width: 100%;" />
+        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648;">
+          <span>0.10</span><span style="color: #6b6456;">Q / (ṁ<sub>ref</sub> h<sub>fg,ref</sub>) — dimensionless</span><span>3.00</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; min-height: 46px;">
+          <label for="in-ts" style="font-size: 13.5px; font-weight: 500;">Sink temperature &nbsp;<span style="font-family: 'Source Serif 4', serif; font-style: italic;">T</span><sub style="font-family: 'IBM Plex Mono', monospace; font-size: 10px;">r,sink</sub></label>
+          <input id="in-ts" type="number" min="0.45" max="0.88" step="0.005" value="{{ tsink }}" onChange="{{ onTsinkNum }}" aria-label="Sink temperature, reduced" />
+        </div>
+        <input type="range" min="0.45" max="0.88" step="0.005" value="{{ tsink }}" onChange="{{ onTsink }}" aria-label="Sink temperature slider" style="width: 100%;" />
+        <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648;">
+          <span>0.450</span><span style="color: #6b6456;">must stay below T<sub>r,cc</sub></span><span>0.880</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: center; padding: 14px 0; border-bottom: 1px solid #e3ddd2;">
+      <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #5c5648;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ flashColor }};"></span>{{ flashLabel }}
+      </div>
+      <div onClick="{{ toggleGhost }}" role="switch" aria-checked="{{ ghost }}" tabIndex="0" style="display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;">
+        <span style="width: 34px; height: 18px; border-radius: 999px; background: {{ switchBg }}; border: 1px solid #cfc8bb; position: relative; display: inline-block; flex-shrink: 0;">
+          <span style="position: absolute; top: 2px; left: {{ switchX }}; width: 12px; height: 12px; border-radius: 50%; background: #faf8f4; box-shadow: 0 0 0 1px rgba(0,0,0,0.18);"></span>
+        </span>
+        Reference overlay &nbsp;T<sub>r,cc</sub> = {{ refS }}
+      </div>
+      <button onClick="{{ doReset }}" style="font-size: 12.5px; padding: 9px 4px; border: none; border-bottom: 1px solid #a39b8c; border-radius: 0; background: transparent; color: #5c5648; margin-left: auto;" style-hover="color: #33302a; border-color: #33302a;">Reset to default</button>
+      <div style="display: flex; align-items: stretch; border: 1px solid #a39b8c; border-radius: 5px; overflow: hidden;">
+        <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #5c5648; font-family: 'IBM Plex Mono', monospace; display: flex; align-items: center; padding: 0 12px; background: #f2eee5; border-right: 1px solid #d8d1c4;">Share / export</span>
+        <button onClick="{{ doLink }}" style="font-size: 12.5px; padding: 9px 14px; border: none; border-right: 1px solid #d8d1c4; background: #fff; color: #33302a; min-height: 40px;" style-hover="background: #f2eee5;">{{ linkLabel }}</button>
+        <button onClick="{{ doCsv }}" style="font-size: 12.5px; padding: 9px 14px; border: none; border-right: 1px solid #d8d1c4; background: #fff; color: #33302a; min-height: 40px;" style-hover="background: #f2eee5;">CSV</button>
+        <button onClick="{{ doPng }}" style="font-size: 12.5px; padding: 9px 14px; border: none; background: #fff; color: #33302a; min-height: 40px;" style-hover="background: #f2eee5;">Chart PNG</button>
+      </div>
+    </div>
+
+    <sc-if value="{{ warn }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: 16px; border: 1px solid #b8442f; background: #fbf1ee; padding: 11px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8f2f1e; line-height: 1.6;">{{ warn }}</div>
+    </sc-if>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; padding: 22px 0 0;">
+      <div style="border: 1px solid {{ capBorder }}; border-top: 3px solid {{ capBorder }}; padding: 14px 16px 15px; background: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5c5648;">Capillary margin</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: {{ capBorder }};">{{ capTag }}</span>
+        </div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 600; margin-top: 7px; line-height: 1;">{{ capMarginS }}</div>
+        <div style="height: 5px; background: #ece7de; margin-top: 11px;"><div style="height: 5px; width: {{ capBarW }}; background: {{ capBorder }};"></div></div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648; margin-top: 8px; line-height: 1.6;">1 − ΔP<sub>cap</sub>/ΔP<sub>cap,max</sub> = 1 − {{ dpCapS }}/{{ dpMaxS }}</div>
+      </div>
+
+      <div style="border: 1px solid {{ subBorder }}; border-top: 3px solid {{ subBorder }}; padding: 14px 16px 15px; background: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5c5648;">Subcooling margin</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: {{ subBorder }};">{{ subTag }}</span>
+        </div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 600; margin-top: 7px; line-height: 1;">{{ subMarginS }}</div>
+        <div style="height: 5px; background: #ece7de; margin-top: 11px;"><div style="height: 5px; width: {{ subBarW }}; background: {{ subBorder }};"></div></div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648; margin-top: 8px; line-height: 1.6;">1 − ΔT<sub>sub,req</sub>/ΔT<sub>sub,av</sub> = 1 − {{ subReqS }}/{{ subAvailS }}</div>
+      </div>
+
+      <div style="border: 1px solid #cfc8bb; border-top: 3px solid #6f6759; padding: 14px 16px 15px; background: #fff;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5c5648;">Regime</div>
+        <div style="font-size: 19px; font-weight: 600; margin-top: 9px; line-height: 1.3;">{{ regimeName }}</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5c5648; margin-top: 9px; line-height: 1.65;">{{ regimeNote }}</div>
+      </div>
+
+      <div style="border: 1px solid {{ statusColor }}; border-top: 3px solid {{ statusColor }}; padding: 14px 16px 15px; background: #fff;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5c5648;">Status</div>
+        <div style="font-size: 19px; font-weight: 600; margin-top: 9px; line-height: 1.3; color: {{ statusColor }};">{{ statusTitle }}</div>
+        <div style="font-size: 12.5px; color: #4a453c; margin-top: 9px; line-height: 1.65; text-wrap: pretty;">{{ statusBody }}</div>
+      </div>
+    </div>
+
+    <div style="padding-top: 34px;">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600;">The loop, and where the nine states sit in it</h2>
+      <p style="margin: 5px 0 12px; font-size: 13px; color: #4a453c; line-height: 1.65; max-width: 62em;">One evaporator with a wick, a compensation chamber holding the only free liquid surface, a vapour line, a condenser that splits itself into a two-phase and a subcooled length, and a liquid line back to the CC. The same hover and pin selection works here.</p>
+      <div style="overflow-x: auto; padding-bottom: 14px;">
+        <div style="min-width: 1060px; max-width: 1060px;">{{ schematic }}</div>
+      </div>
+    </div>
+
+    <div style="padding-top: 34px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-bottom: 4px;">
+        <div>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600;">The cycle on the P–T plane</h2>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #4a453c; line-height: 1.65; max-width: 54em;">Axes are linear and magnified about the operating point, so the pressure drops that the log-scale plane hides become visible. Hover a state point to preview it, or click, tap or tab-and-press-Enter to pin it — the selection follows through every figure and the table.</p>
+        </div>
+        <div style="display: flex; gap: 18px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #4a453c;">
+          <span style="display: flex; align-items: center; gap: 7px;"><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="30" y2="5" stroke="#8e2b6b" stroke-width="2.4" stroke-dasharray="9 3 2 3"></line><polygon points="15,0.6 19.4,5 15,9.4 10.6,5" fill="#e08a3c" stroke="#7a4a12"></polygon></svg>liquid through the wick 8→9</span>
+          <span style="display: flex; align-items: center; gap: 7px;"><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="30" y2="5" stroke="#bf3320" stroke-width="2.4"></line><circle cx="15" cy="5" r="3.6" fill="#e08a3c" stroke="#7a4a12"></circle></svg>meniscus 9→1, then vapour 1→4</span>
+          <span style="display: flex; align-items: center; gap: 7px;"><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="30" y2="5" stroke="#26268c" stroke-width="2.4" stroke-dasharray="7 4"></line><rect x="11.5" y="1.5" width="7" height="7" fill="#e08a3c" stroke="#7a4a12"></rect></svg>condensate and liquid line 4→8</span>
+          <span style="display: flex; align-items: center; gap: 7px;"><svg width="30" height="10" aria-hidden="true"><line x1="0" y1="5" x2="30" y2="5" stroke="#5d3580" stroke-width="3"></line></svg>saturation</span>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <div style="min-width: 1060px; max-width: 1060px;">{{ ptDetail }}</div>
+      </div>
+      <div style="border: 1px solid {{ hiBorder }}; background: #fff; padding: 12px 15px; margin-top: 10px; display: flex; gap: 8px 18px; align-items: baseline; flex-wrap: wrap; min-height: 24px;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: {{ hiColor }};">{{ hiId }}</span>
+        <span style="font-size: 14px; font-weight: 600;">{{ hiName }}</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: #4a453c;">{{ hiVals }}</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: {{ hiColor }};">{{ pinTag }}</span>
+        <sc-if value="{{ sel }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearSel }}" style="font-size: 11.5px; padding: 5px 10px; border: 1px solid #a39b8c; border-radius: 4px; background: #fff; color: #5c5648;" style-hover="border-color: #33302a; color: #33302a;">Clear selection</button>
+        </sc-if>
+        <span style="font-size: 13px; color: #4a453c; line-height: 1.65; flex: 1; min-width: 260px; text-wrap: pretty;">{{ hiNote }}</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 34px; padding-top: 36px;">
+
+      <div>
+        <h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">State points</h2>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #4a453c; line-height: 1.65;">Hover a row to preview it; click or press Enter to pin that point across every figure.</p>
+        <table onMouseLeave="{{ hLeave }}" style="width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">
+          <thead>
+            <tr style="border-bottom: 1px solid #33302a; color: #5c5648; font-size: 10px; letter-spacing: 0.08em;">
+              <th style="text-align: left; padding: 0 0 7px; width: 34px;">#</th>
+              <th style="text-align: left; padding: 0 0 7px;">STATE</th>
+              <th style="text-align: right; padding: 0 0 7px; width: 58px;">T r</th>
+              <th style="text-align: right; padding: 0 0 7px; width: 66px;">P r</th>
+              <th style="text-align: right; padding: 0 0 7px; width: 56px;">s *</th>
+            </tr>
+          </thead>
+          <tbody onClick="{{ tblClick }}" onKeyDown="{{ tblKey }}">
+            <tr onMouseEnter="{{ h1 }}" data-pt="1" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg1 }};"><td style="padding: 9px 0; color: #bf3320; font-weight: 600;">1</td><td style="padding: 9px 0;">Meniscus, vapour side</td><td style="text-align: right;">{{ t1S }}</td><td style="text-align: right;">{{ p1S }}</td><td style="text-align: right;">{{ s1S }}</td></tr>
+            <tr onMouseEnter="{{ h2 }}" data-pt="2" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg2 }};"><td style="padding: 9px 0; color: #bf3320; font-weight: 600;">2</td><td style="padding: 9px 0;">Vapour-groove exit</td><td style="text-align: right;">{{ t2S }}</td><td style="text-align: right;">{{ p2S }}</td><td style="text-align: right;">{{ s2S }}</td></tr>
+            <tr onMouseEnter="{{ h2p }}" data-pt="2′" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg2p }};"><td style="padding: 9px 0; color: #5c5648;">2′</td><td style="padding: 9px 0;">Saturation state at P<sub>2</sub></td><td style="text-align: right;">{{ t2pS }}</td><td style="text-align: right;">{{ p2S }}</td><td style="text-align: right;">{{ s2pS }}</td></tr>
+            <tr onMouseEnter="{{ h3 }}" data-pt="3" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg3 }};"><td style="padding: 9px 0; color: #bf3320; font-weight: 600;">3</td><td style="padding: 9px 0;">Vapour-line exit</td><td style="text-align: right;">{{ t3S }}</td><td style="text-align: right;">{{ p3S }}</td><td style="text-align: right;">{{ s3S }}</td></tr>
+            <tr onMouseEnter="{{ h4 }}" data-pt="4" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg4 }};"><td style="padding: 9px 0; color: #bf3320; font-weight: 600;">4</td><td style="padding: 9px 0;">Onset of condensation</td><td style="text-align: right;">{{ t4S }}</td><td style="text-align: right;">{{ p4S }}</td><td style="text-align: right;">{{ s4S }}</td></tr>
+            <tr onMouseEnter="{{ h5 }}" data-pt="5" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg5 }};"><td style="padding: 9px 0; color: #26268c; font-weight: 600;">5</td><td style="padding: 9px 0;">End of condensation</td><td style="text-align: right;">{{ t5S }}</td><td style="text-align: right;">{{ p5S }}</td><td style="text-align: right;">{{ s5S }}</td></tr>
+            <tr onMouseEnter="{{ h6 }}" data-pt="6" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg6 }};"><td style="padding: 9px 0; color: #26268c; font-weight: 600;">6</td><td style="padding: 9px 0;">Condenser exit, subcooled</td><td style="text-align: right;">{{ t6S }}</td><td style="text-align: right;">{{ p6S }}</td><td style="text-align: right;">{{ s6S }}</td></tr>
+            <tr onMouseEnter="{{ h7 }}" data-pt="7" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg7 }};"><td style="padding: 9px 0; color: #26268c; font-weight: 600;">7</td><td style="padding: 9px 0;">Liquid-line exit / CC inlet</td><td style="text-align: right;">{{ t7S }}</td><td style="text-align: right;">{{ p78S }}</td><td style="text-align: right;">{{ s7S }}</td></tr>
+            <tr onMouseEnter="{{ h8 }}" data-pt="8" tabIndex="0" style="border-bottom: 1px solid #ece7de; cursor: pointer; background: {{ bg8 }};"><td style="padding: 9px 0; color: #26268c; font-weight: 600;">8</td><td style="padding: 9px 0;">CC, two-phase (saturated)</td><td style="text-align: right;">{{ t8S }}</td><td style="text-align: right;">{{ p78S }}</td><td style="text-align: right;">{{ s8S }}</td></tr>
+            <tr onMouseEnter="{{ h9 }}" data-pt="9" tabIndex="0" style="cursor: pointer; background: {{ bg9 }};"><td style="padding: 9px 0; color: #8e2b6b; font-weight: 600;">9</td><td style="padding: 9px 0;">Wick liquid at meniscus</td><td style="text-align: right;">{{ t9S }}</td><td style="text-align: right;">{{ p9S }}</td><td style="text-align: right;">{{ s9S }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">Pressure around the loop</h2>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #4a453c; line-height: 1.65;">The step at the meniscus is the capillary head; everything else is a loss that head has to pay for.</p>
+        <div style="overflow-x: auto;">
+          <div style="min-width: 460px; max-width: 560px;">{{ profChart }}</div>
+        </div>
+      </div>
+
+      <div>
+        <h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">The cycle on the T–s plane</h2>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #4a453c; line-height: 1.65;">Raising T<sub>r,cc</sub> lifts the cycle and narrows it: the latent heat falls, so the 9→1 crossing of the dome gets shorter.</p>
+        <div style="max-width: 470px;">{{ tsChart }}</div>
+      </div>
+
+      <div>
+        <h2 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">Where the cycle sits, and where the interface is</h2>
+        <p style="margin: 0 0 12px; font-size: 13px; color: #4a453c; line-height: 1.65;">The whole cycle is a small box sliding along the saturation line. The condenser splits itself into a two-phase and a subcooled length to absorb the load.</p>
+        <div style="max-width: 470px;">{{ ptGlobal }}</div>
+        <div style="margin-top: 16px; max-width: 470px;">{{ condBar }}</div>
+      </div>
+
+    </div>
+
+    <div style="padding-top: 34px; border-top: 1px solid #e3ddd2; margin-top: 34px;">
+      <div onClick="{{ toggleEq }}" style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #5c5648; width: 12px;">{{ eqArrow }}</span>
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Governing relations and assumptions</h2>
+      </div>
+      <sc-if value="{{ showEq }}" hint-placeholder-val="{{ true }}">
+        <div style="padding-top: 18px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px 44px; font-family: 'Source Serif 4', serif; font-size: 15.5px; line-height: 1.85;">
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(1)</span><span>ln <i>P</i><sub>r</sub> = <i>A</i>(1 − 1/<i>T</i><sub>r</sub>) ,&nbsp; <i>A</i> = 7</span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(2)</span><span><i>P</i><sub>7,8</sub> = <i>P</i><sub>sat</sub>(<i>T</i><sub>8</sub>) — the CC fixes the loop pressure level</span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(3)</span><span><i>P</i><sub>1</sub> − <i>P</i><sub>9</sub> = Δ<i>P</i><sub>GV</sub> + Δ<i>P</i><sub>VL</sub> + Δ<i>P</i><sub>COND</sub> + Δ<i>P</i><sub>LL</sub> + Δ<i>P</i><sub>WICK</sub></span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(4)</span><span>Δ<i>P</i><sub>cap</sub> ≤ Δ<i>P</i><sub>cap,max</sub> = 2σ(<i>T</i><sub>8</sub>)/<i>r</i><sub>p</sub></span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(5)</span><span><i>T</i><sub>1</sub> = <i>T</i><sub>sat</sub>(<i>P</i><sub>1</sub>) ,&nbsp; <i>T</i><sub>1</sub> − <i>T</i><sub>8</sub> ≈ Δ<i>P</i><sub>ext</sub>(d<i>T</i>/d<i>P</i>)<sub>sat</sub></span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(6)</span><span>ṁ = <i>Q</i>/<i>h</i><sub>fg</sub> ,&nbsp; Δ<i>P</i><sub>v</sub> ∝ ṁ/ρ<sub>v</sub>(<i>T</i><sub>8</sub>)</span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(7)</span><span><i>Q</i> = <i>UA</i><sub>2φ</sub>(<i>T</i><sub>5</sub> − <i>T</i><sub>sink</sub>) ⇒ <i>L</i><sub>2φ</sub>/<i>L</i><sub>c</sub></span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(8)</span><span><i>Q</i><sub>leak</sub> = ṁ <i>c</i><sub>p,l</sub> Δ<i>T</i><sub>sub</sub> — CC energy balance</span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(9)</span><span>Δ<i>T</i><sub>sub,av</sub> = (<i>T</i><sub>5</sub> − <i>T</i><sub>sink</sub>)[1 − exp(−NTU<sub>sub</sub>)]</span></div>
+            <div style="display: flex; gap: 12px; align-items: baseline;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6456; width: 24px; flex-shrink: 0;">(10)</span><span><i>h</i><sub>fg</sub>* = θ<sup>0.38</sup>, σ* = θ<sup>1.26</sup>, ρ<sub>l</sub>* = θ<sup>0.28</sup>, θ = (1−<i>T</i><sub>r</sub>)/0.3</span></div>
+          </div>
+
+          <h3 style="margin: 26px 0 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #5c5648; font-weight: 500;">Model constants</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 7px 28px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #4a453c;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">r<sub>p</sub>* pore radius</span><span>{{ rpS }}</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">c<sub>p,l</sub>*</span><span>2.50</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">c<sub>p,v</sub>*</span><span>1.40</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">evaporator G*</span><span>40.0</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">wick leak G*</span><span>1.20</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">ambient T<sub>r</sub></span><span>0.750</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">condenser UA*</span><span>12.0</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ece7de; padding-bottom: 5px;"><span style="color: #5c5648;">subcooler NTU coeff.</span><span>0.80</span></div>
+          </div>
+
+          <p style="margin: 22px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 1.95; color: #5c5648; max-width: 78em;">Closure: ρ<sub>v</sub>* ∝ P<sub>r</sub>/T<sub>r</sub> (ideal gas), μ<sub>l</sub>* = exp[2.5(1/T<sub>r</sub> − 1/0.7)], all Δ<i>P</i> laminar (∝ ṁμ/ρ). Segments 2–3 and 3–4 carry vapour superheat; 5–6 and 6–7 carry liquid subcooling. Gravity, non-condensable gas, transient charge redistribution and wick deprime hysteresis are all omitted. The pressure and temperature scales of the main P–T figure are magnified about the operating point, following the standard schematic construction. This is a study aid: trends are meaningful, absolute numbers are not.</p>
+        </div>
+      </sc-if>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;refTcc&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0.78,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0.58,&quot;max&quot;:0.92,&quot;step&quot;:0.005,&quot;section&quot;:&quot;Overlay&quot;,&quot;label&quot;:&quot;Reference T r,cc&quot;},&quot;poreRadius&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:1.0,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0.2,&quot;max&quot;:5,&quot;step&quot;:0.1,&quot;section&quot;:&quot;Wick&quot;,&quot;label&quot;:&quot;Effective pore radius r p*&quot;}}">
+class Component extends DCLogic {
+  DEF = { tcc: 0.72, q: 1.0, tsink: 0.6 };
+  state = { tcc: 0.72, q: 1.0, tsink: 0.6, ghost: true, hi: null, sel: null, showEq: false, flash: 0, linked: false };
+
+  A = 7.0;
+  CV = { Cg: 0.003, Cv: 0.010, Cc: 0.008, Cl: 0.002, Cw: 0.005, Ca: 0.06, Kc: 12, Ks: 0.8, Ge: 40, Gw: 1.2, Ga: 0.4, tamb: 0.75, cpl: 2.5, cpv: 1.4 };
+  RNG = { tcc: [0.58, 0.92], q: [0.1, 3], tsink: [0.45, 0.88] };
+  COL = { vap: '#bf3320', liq: '#26268c', wick: '#8e2b6b', sat: '#5d3580', node: '#e08a3c', nodeEdge: '#7a4a12', ink: '#33302a', mid: '#4a453c', faint: '#5c5648', grid: '#e8e2d8', ghost: '#a9a091', hi: '#0d7a5f' };
+
+  componentDidMount() {
+    try {
+      const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      const p = {};
+      ['tcc', 'q', 'tsink'].forEach(k => { const v = parseFloat(h.get(k)); if (isFinite(v)) p[k] = this.clamp(k, v); });
+      if (h.get('ghost') === '0') p.ghost = false;
+      if (Object.keys(p).length) this.setState(p);
+    } catch (e) { /* no hash */ }
+  }
+  clamp(k, v) { const r = this.RNG[k]; return Math.min(r[1], Math.max(r[0], v)); }
+  setIn(k, raw) {
+    const v = parseFloat(raw);
+    if (!isFinite(v)) return;
+    const c = this.clamp(k, v), p = {};
+    p[k] = c; p.flash = Date.now(); p.linked = false;
+    if (Math.abs(c - v) > 1e-9) p.oor = k + ' = ' + v + ' is outside [' + this.RNG[k][0] + ', ' + this.RNG[k][1] + '] and was clamped to ' + c.toFixed(3) + '.';
+    else p.oor = null;
+    this.setState(p, () => this.syncHash());
+  }
+  syncHash() {
+    try {
+      const s = this.state;
+      history.replaceState(null, '', '#tcc=' + s.tcc.toFixed(3) + '&q=' + s.q.toFixed(2) + '&tsink=' + s.tsink.toFixed(3) + '&ghost=' + (s.ghost ? 1 : 0));
+    } catch (e) { /* ignore */ }
+  }
+
+  pr(tr) { return Math.exp(this.A * (1 - 1 / tr)); }
+  trs(p) { return 1 / (1 - Math.log(Math.max(1e-12, p)) / this.A); }
+  dpdt(tr) { return this.pr(tr) * this.A / (tr * tr); }
+  th(tr) { return Math.max(1e-4, (1 - tr) / 0.3); }
+  hfg(tr) { return Math.pow(this.th(tr), 0.38); }
+  sig(tr) { return Math.pow(this.th(tr), 1.26); }
+  rhov(tr) { return (this.pr(tr) / tr) / 0.07112; }
+  rhol(tr) { return Math.pow(this.th(tr), 0.28); }
+  mul(tr) { return Math.exp(2.5 * (1 / tr - 1 / 0.7)); }
+  sl(tr) { return this.CV.cpl * Math.log(tr / 0.5); }
+  sv(tr) { return this.sl(tr) + this.CV.cpl * this.hfg(tr) / tr; }
+  ssh(tr, prv) { const ts = this.trs(prv); return this.sv(ts) + this.CV.cpv * Math.log(Math.max(1e-6, tr / ts)); }
+
+  solve(t8, q, tsink) {
+    const K = this.CV, rp = this.props.poreRadius ?? 1.0;
+    const P78 = this.pr(t8), hfg = this.hfg(t8), mdot = q / hfg;
+    const rv = this.rhov(t8), rl = this.rhol(t8), mu = this.mul(t8);
+    const f = Math.min(1, q / (K.Kc * Math.max(0.004, t8 - tsink)));
+    const dpGV = K.Cg * mdot / rv, dpVL = K.Cv * mdot / rv;
+    const dpCO = K.Cc * f * mdot / rv;
+    const dpLL = K.Cl * mu * mdot / rl, dpWK = K.Cw * mu * mdot / rl;
+    const dpCap = dpGV + dpVL + dpCO + dpLL + dpWK;
+    const dpMax = K.Ca * this.sig(t8) / rp;
+    const P7 = P78, P6 = P78 + dpLL, P5 = P6 + 0.15 * dpCO, P4 = P5 + 0.75 * dpCO,
+      P3 = P4 + 0.10 * dpCO, P2 = P3 + dpVL, P1 = P2 + dpGV;
+    const P9raw = P78 - dpWK, nonphys = P9raw <= 0, P9 = Math.max(P78 * 0.05, P9raw);
+    const T1 = this.trs(P1), sup = q / K.Ge, T2 = T1 + sup;
+    const T2p = this.trs(P2), sh2 = Math.max(0, T2 - T2p);
+    const T3 = this.trs(P3) + 0.45 * sh2, T4 = this.trs(P4), T5 = this.trs(P5);
+    const qleak = K.Gw * (T1 + sup - t8) + K.Ga * Math.max(0, K.tamb - t8);
+    const subReq = qleak / Math.max(1e-6, mdot * K.cpl);
+    const ntu = K.Ks * (1 - f) / Math.max(1e-6, mdot);
+    const subAv = Math.max(0, T5 - tsink) * (1 - Math.exp(-ntu));
+    const sub = Math.min(subReq, subAv);
+    const T6 = T5 - sub, T7 = Math.min(t8 - 0.002, T6 + 0.15 * Math.max(0, K.tamb - T6));
+    return { t8, q, tsink, P78, P7, P6, P5, P4, P3, P2, P1, P9, T1, T2, T2p, T3, T4, T5, T6, T7, T9: T1,
+      hfg, mdot, rv, rl, f, dpGV, dpVL, dpCO, dpLL, dpWK, dpCap, dpMax, subReq, subAv, sub, qleak,
+      dpdt: this.dpdt(t8), P9raw, nonphys, capM: 1 - dpCap / dpMax, subM: subAv > 0 ? 1 - subReq / subAv : -1 };
+  }
+
+  pointList(r) {
+    return [
+      { id: '1', name: 'Meniscus, vapour side', t: r.T1, p: r.P1, s: this.sv(r.T1), br: 'vap', shape: 'c', note: 'Saturated vapour just outside the wick. Its pressure is the highest in the loop; the saturation curve then fixes T₁, which is what the evaporator wall has to sit above.' },
+      { id: '2', name: 'Vapour-groove exit', t: r.T2, p: r.P2, s: this.ssh(r.T2, r.P2), br: 'vap', shape: 'c', note: 'Superheated: the grooves keep heating the vapour while its pressure falls, so the point leaves the saturation curve to the right.' },
+      { id: '2′', name: 'Saturation state at P₂', t: r.T2p, p: r.P2, s: this.sv(r.T2p), br: 'vap', shape: 'o', note: 'Reference point on the curve at the same pressure as 2. The horizontal gap 2′→2 is the vapour superheat.' },
+      { id: '3', name: 'Vapour-line exit', t: r.T3, p: r.P3, s: this.ssh(r.T3, r.P3), br: 'vap', shape: 'c', note: 'The vapour line costs pressure and sheds part of the superheat. ΔP_VL is usually the largest single loss, and it scales as ṁ/ρ_v — which is why it explodes at low CC temperature.' },
+      { id: '4', name: 'Onset of condensation', t: r.T4, p: r.P4, s: this.sv(r.T4), br: 'vap', shape: 'c', note: 'The vapour has cooled back onto the curve. Everything downstream of here is two-phase until point 5.' },
+      { id: '5', name: 'End of condensation', t: r.T5, p: r.P5, s: this.sl(r.T5), br: 'liq', shape: 's', note: 'Saturated liquid. Its position along the condenser is the interface the loop moves to balance the load — see the interface bar.' },
+      { id: '6', name: 'Condenser exit, subcooled', t: r.T6, p: r.P6, s: this.sl(r.T6), br: 'liq', shape: 's', note: 'Off the curve on the liquid side. The gap 5→6 is the subcooling the loop bought with the remaining condenser length; it is the only thing that can absorb the heat leak into the CC.' },
+      { id: '7', name: 'Liquid-line exit / CC inlet', t: r.T7, p: r.P78, s: this.sl(r.T7), br: 'liq', shape: 's', note: 'The liquid line costs ΔP_LL and gives back some of the subcooling to ambient.' },
+      { id: '8', name: 'CC, two-phase (saturated)', t: r.t8, p: r.P78, s: this.sl(r.t8), br: 'liq', shape: 's', note: 'The only saturated volume with a free surface. Set its temperature and you have set P₇,₈ — and with it the pressure level of every other point.' },
+      { id: '9', name: 'Wick liquid at meniscus', t: r.T9, p: r.P9, s: this.sl(r.T9), br: 'wick', shape: 'd', note: 'Lowest pressure in the loop: the liquid paid ΔP_WICK to cross the wick, and is now superheated relative to its own pressure. The jump 9→1 is the capillary head.' }
+    ];
+  }
+
+  // --- svg helpers ---
+  sc(o) {
+    const ya = o.logy ? Math.log10(o.yr[0]) : o.yr[0], yb = o.logy ? Math.log10(o.yr[1]) : o.yr[1];
+    return { X: v => o.ml + (v - o.xr[0]) / (o.xr[1] - o.xr[0]) * (o.w - o.ml - o.mr),
+      Y: v => o.h - o.mb - ((o.logy ? Math.log10(Math.max(1e-12, v)) : v) - ya) / (yb - ya) * (o.h - o.mt - o.mb) };
+  }
+  frame(o, S) {
+    const e = React.createElement, out = [], C = this.COL;
+    (o.xticks || []).forEach((t, i) => { const x = S.X(t);
+      out.push(e('line', { key: 'xg' + i, x1: x, x2: x, y1: o.mt, y2: o.h - o.mb, stroke: C.grid }));
+      out.push(e('text', { key: 'xt' + i, x, y: o.h - o.mb + 18, textAnchor: 'middle', fill: C.faint, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, o.xfmt(t))); });
+    (o.yticks || []).forEach((t, i) => { const y = S.Y(t);
+      out.push(e('line', { key: 'yg' + i, x1: o.ml, x2: o.w - o.mr, y1: y, y2: y, stroke: C.grid }));
+      out.push(e('text', { key: 'yt' + i, x: o.ml - 8, y: y + 4, textAnchor: 'end', fill: C.faint, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, o.yfmt(t))); });
+    out.push(e('rect', { key: 'bx', x: o.ml, y: o.mt, width: o.w - o.ml - o.mr, height: o.h - o.mt - o.mb, fill: 'none', stroke: C.ink, strokeWidth: 1.2 }));
+    if (o.xlab) out.push(e('text', { key: 'xl', x: (o.ml + o.w - o.mr) / 2, y: o.h - 4, textAnchor: 'middle', fill: C.ink, fontSize: 14, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, o.xlab));
+    if (o.ylab) out.push(e('text', { key: 'yl', x: 2, y: 14, fill: C.ink, fontSize: 14, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, o.ylab));
+    return out;
+  }
+  d(pts, S) { return pts.map((p, i) => (i ? 'L' : 'M') + S.X(p[0]).toFixed(2) + ' ' + S.Y(p[1]).toFixed(2)).join(' '); }
+  decol(items, key, gap) {
+    const s = items.map((v, i) => ({ i, p: v[key], o: v[key] })).sort((a, b) => a.p - b.p);
+    for (let k = 1; k < s.length; k++) if (s[k].p - s[k - 1].p < gap) s[k].p = s[k - 1].p + gap;
+    const out = items.slice();
+    s.forEach(x => { out[x.i] = Object.assign({}, items[x.i]); out[x.i][key] = x.p; out[x.i].orig = x.o; });
+    return out;
+  }
+  stackLabels(o, S, items, hi) {
+    const e = React.createElement, C = this.COL, out = [];
+    ['L', 'R'].forEach(sd => {
+      const grp = items.filter(p => p.side === sd);
+      if (!grp.length) return;
+      const rows = this.decol(grp.map(p => ({ p, y: p.sy })), 'y', 24);
+      let mo = 0, mn = 0;
+      rows.forEach(R => { mo += R.orig; mn += R.y; });
+      let sh = (mn - mo) / rows.length;
+      const ys = rows.map(R => R.y - sh);
+      const top = Math.min.apply(null, ys), bot = Math.max.apply(null, ys);
+      if (top < o.mt + 12) sh -= (o.mt + 12 - top);
+      else if (bot > o.h - o.mb - 10) sh += (bot - (o.h - o.mb - 10));
+      rows.forEach((R, i) => {
+        const ly = R.y - sh;
+        let dir = sd === 'L' ? -1 : 1;
+        let lx = R.p.sx + dir * 32;
+        if (lx < o.ml + 24) { dir = 1; lx = R.p.sx + 32; }
+        else if (lx > o.w - o.mr - 24) { dir = -1; lx = R.p.sx - 32; }
+        const hl = hi === R.p.lbl;
+        out.push(e('path', { key: sd + 'sd' + i, d: 'M' + (R.p.sx + dir * 6).toFixed(1) + ' ' + R.p.sy.toFixed(1) + 'L' + (R.p.sx + dir * 20).toFixed(1) + ' ' + ly.toFixed(1) + 'L' + (lx - dir * 5).toFixed(1) + ' ' + ly.toFixed(1), fill: 'none', stroke: hl ? C.hi : '#cfc8bb', strokeWidth: hl ? 1.4 : 0.9 }));
+        out.push(e('text', { key: sd + 'st' + i, x: lx, y: ly + 5, textAnchor: dir < 0 ? 'end' : 'start', fill: hl ? C.hi : C.ink, fontSize: hl ? 16 : 14.5, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, R.p.lbl));
+      });
+    });
+    return out;
+  }
+  glyph(key, shape, cx, cy, hl) {
+    const e = React.createElement, C = this.COL, r = hl ? 6.6 : 5, sw = hl ? 2 : 1.2;
+    const fill = hl ? C.hi : C.node, ed = hl ? '#08483a' : C.nodeEdge;
+    if (shape === 's') return e('rect', { key, x: cx - r, y: cy - r, width: r * 2, height: r * 2, fill, stroke: ed, strokeWidth: sw });
+    if (shape === 'd') return e('polygon', { key, points: [cx, cy - r * 1.25, cx + r * 1.25, cy, cx, cy + r * 1.25, cx - r * 1.25, cy].join(' '), fill, stroke: ed, strokeWidth: sw });
+    if (shape === 'o') return e('circle', { key, cx, cy, r: r - 0.5, fill: '#faf8f4', stroke: hl ? '#08483a' : C.nodeEdge, strokeWidth: sw + 0.3 });
+    return e('circle', { key, cx, cy, r, fill, stroke: ed, strokeWidth: sw });
+  }
+  hitArea(key, cx, cy, id, focusable) {
+    const p = { key, cx, cy, r: 14, fill: 'transparent', style: { cursor: 'pointer' },
+      onMouseEnter: () => this.setState({ hi: id }), onMouseLeave: () => this.setState({ hi: null }),
+      onClick: () => this.pick(id) };
+    if (focusable) {
+      p.tabIndex = 0; p.role = 'button'; p['aria-label'] = 'State point ' + id;
+      p.onFocus = () => this.setState({ hi: id });
+      p.onBlur = () => this.setState({ hi: null });
+      p.onKeyDown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this.pick(id); } };
+    }
+    return React.createElement('circle', p);
+  }
+  pick(id) { this.setState(s => ({ sel: s.sel === id ? null : id })); }
+
+  schematic(r, hi) {
+    const e = React.createElement, C = this.COL, c = [];
+    const W = 1060, H = 366;
+    const box = (k, x, y, w, h, fill, op, stroke, dash) => e('rect', { key: k, x, y, width: w, height: h, fill, fillOpacity: op, stroke, strokeWidth: 1.4, strokeDasharray: dash || 'none' });
+    const cap = (k, x, y, t, col, sz, anc) => e('text', { key: k, x, y, textAnchor: anc || 'middle', fill: col || C.faint, fontSize: sz || 12, fontFamily: 'IBM Plex Mono, monospace' }, t);
+    c.push(e('defs', { key: 'df' }, e('pattern', { id: 'wickhatch', width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
+      e('line', { x1: 0, y1: 0, x2: 0, y2: 7, stroke: '#8e2b6b', strokeWidth: 1.1, strokeOpacity: 0.5 }))));
+
+    const xf = 700 + 290 * Math.min(0.94, Math.max(0.06, r.f));
+    // rails
+    c.push(e('path', { key: 'vl', d: 'M320 110 L690 110', fill: 'none', stroke: C.vap, strokeWidth: 3 }));
+    c.push(e('path', { key: 'll', d: 'M990 140 L990 236 L300 236', fill: 'none', stroke: C.liq, strokeWidth: 3, strokeDasharray: '9 5' }));
+    c.push(e('path', { key: 'cc2ev', d: 'M110 205 L110 170', fill: 'none', stroke: C.liq, strokeWidth: 3, strokeDasharray: '9 5' }));
+    [[500, 110, 1, C.vap], [640, 236, -1, C.liq]].forEach((a, i) =>
+      c.push(e('path', { key: 'ar' + i, d: 'M' + (a[0] - 7 * a[2]) + ' ' + (a[1] - 6) + 'L' + (a[0] + 7 * a[2]) + ' ' + a[1] + 'L' + (a[0] - 7 * a[2]) + ' ' + (a[1] + 6) + 'Z', fill: a[3] })));
+    c.push(cap('vlt', 505, 96, 'vapour line', C.vap));
+    c.push(cap('llt', 645, 226, 'liquid line', C.liq));
+
+    // evaporator
+    c.push(box('ev', 90, 80, 230, 90, 'none', 1, C.ink));
+    c.push(box('core', 96, 86, 50, 78, C.liq, 0.12, C.liq, '6 4'));
+    c.push(box('wick', 146, 86, 90, 78, 'url(#wickhatch)', 1, C.wick));
+    c.push(box('grv', 236, 86, 78, 78, C.vap, 0.13, C.vap));
+    c.push(e('line', { key: 'men', x1: 236, x2: 236, y1: 86, y2: 164, stroke: C.wick, strokeWidth: 2.6 }));
+    c.push(cap('evt', 205, 72, 'EVAPORATOR', C.ink, 12.5));
+    c.push(cap('coret', 121, 152, 'core', C.liq, 11));
+    c.push(cap('wickt', 191, 152, 'wick', C.wick, 11));
+    c.push(cap('grvt', 275, 152, 'grooves', C.vap, 11));
+    c.push(cap('ment', 236, 178, 'meniscus', C.wick, 11));
+
+    // CC
+    c.push(box('cc', 90, 205, 210, 64, C.liq, 0.06, C.ink));
+    c.push(e('path', { key: 'ccl', d: 'M104 233 L286 233', fill: 'none', stroke: C.liq, strokeWidth: 1.6 }));
+    c.push(cap('cct', 195, 199, 'COMPENSATION CHAMBER', C.ink, 12.5));
+    c.push(cap('cct2', 104, 226, 'vapour', C.vap, 10.5, 'start'));
+    c.push(cap('cct3', 104, 249, 'liquid', C.liq, 10.5, 'start'));
+    c.push(cap('cct4', 286, 249, 'saturated — sets P₇,₈', C.faint, 10.5, 'end'));
+
+    // condenser
+    c.push(box('cd', 700, 86, 290, 54, 'none', 1, C.ink));
+    c.push(box('cd2', 700, 86, xf - 700, 54, C.vap, 0.14, 'none'));
+    c.push(box('cd1', xf, 86, 990 - xf, 54, C.liq, 0.11, 'none'));
+    c.push(e('line', { key: 'cdi', x1: xf, x2: xf, y1: 80, y2: 146, stroke: C.ink, strokeWidth: 1.8 }));
+    c.push(cap('cdt', 845, 72, 'CONDENSER', C.ink, 12.5));
+    c.push(cap('cd2t', (700 + xf) / 2, 118, 'two-phase', C.vap, 11));
+    c.push(cap('cd1t', (xf + 990) / 2, 118, 'subcooled', C.liq, 11));
+    c.push(cap('snk', 845, 165, 'heat out to sink  T r,sink = ' + r.tsink.toFixed(3), C.faint, 11.5));
+    [0, 1, 2, 3].forEach(i => c.push(e('path', { key: 'sk' + i, d: 'M' + (760 + i * 60) + ' 142 L' + (760 + i * 60) + ' 152', fill: 'none', stroke: C.faint, strokeWidth: 1.2 })));
+
+    // heat in
+    [0, 1, 2].forEach(i => c.push(e('path', { key: 'hi' + i, d: 'M' + (170 + i * 45) + ' 40 L' + (170 + i * 45) + ' 56', fill: 'none', stroke: C.vap, strokeWidth: 1.6 })));
+    c.push(cap('hit', 205, 32, 'heat in  Q* = ' + r.q.toFixed(2), C.vap, 11.5));
+
+    // stations
+    const st = [
+      ['8', 195, 233, 's', -17, -12], ['7', 312, 236, 's', 0, 26], ['9', 224, 125, 'd', -16, 5],
+      ['1', 250, 125, 'c', 17, 5], ['2', 314, 110, 'c', 0, -12], ['3', 692, 110, 'c', -6, 30],
+      ['4', 712, 110, 'c', 4, -14], ['5', xf, 113, 's', 0, 30], ['6', 986, 110, 's', 8, -14]
+    ];
+    st.forEach((p, i) => {
+      const hl = hi === p[0];
+      c.push(this.glyph('sg' + i, p[3], p[1], p[2], hl));
+      c.push(e('text', { key: 'sl' + i, x: p[1] + p[4], y: p[2] + p[5], textAnchor: p[4] === 0 ? 'middle' : (p[4] < 0 ? 'end' : 'start'), fill: hl ? C.hi : C.ink, fontSize: hl ? 16 : 14.5, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, p[0]));
+      c.push(this.hitArea('sh' + i, p[1], p[2], p[0]));
+    });
+    c.push(cap('note2', 2, 318, 'flow: 8 → 9 through the wick, evaporates at the meniscus 9 → 1, vapour 1 → 4, condensate 4 → 6, liquid line 6 → 7 → 8', C.faint, 11.5, 'start'));
+    c.push(cap('note', 2, 338, '2′ is a construction point on the saturation curve at P₂ — it has no location in the hardware.', C.faint, 11.5, 'start'));
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Loop heat pipe layout with the nine state points marked', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- main P-T ---
+  ptDetail(r, hi) {
+    const e = React.createElement, C = this.COL, P = this.pointList(r);
+    const Ts = P.map(p => p.t), Ps = P.map(p => p.p);
+    const tlo = Math.min.apply(null, Ts), thi = Math.max.apply(null, Ts);
+    const plo = Math.min.apply(null, Ps), phi = Math.max.apply(null, Ps);
+    const tp = Math.max(1e-4, (thi - tlo) * 0.10), pp = Math.max(1e-6, (phi - plo) * 0.16);
+    const o = { w: 1060, h: 540, ml: 158, mr: 40, mt: 34, mb: 70, xr: [tlo - tp * 1.5, thi + tp], yr: [plo - pp, phi + pp],
+      xticks: [], yticks: [], xfmt: v => v, yfmt: v => v, xlab: 'Temperature  T r  →', ylab: 'Pressure  P r  ↑' };
+    const S = this.sc(o), c = [], cid = 'clip-ptd2';
+    c.push(e('defs', { key: 'df' }, e('clipPath', { id: cid }, e('rect', { x: o.ml, y: o.mt, width: o.w - o.ml - o.mr, height: o.h - o.mt - o.mb }))));
+    c.push.apply(c, this.frame(o, S));
+    const sat = []; for (let i = 0; i <= 150; i++) { const t = o.xr[0] + (o.xr[1] - o.xr[0]) * i / 150; sat.push([t, this.pr(t)]); }
+    c.push(e('g', { key: 'sg', clipPath: 'url(#' + cid + ')' }, e('path', { d: this.d(sat, S), fill: 'none', stroke: C.sat, strokeWidth: 3 })));
+    c.push(e('text', { key: 'sl', x: o.w - o.mr, y: 14, textAnchor: 'end', fill: C.sat, fontSize: 14, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, '(dP/dT) saturation curve'));
+
+    const lv = [['P₁', r.P1, r.T1], ['P₂', r.P2, r.T2], ['P₃', r.P3, r.T3], ['P₄', r.P4, r.T4],
+      ['P₅', r.P5, r.T5], ['P₆', r.P6, r.T6], ['P₇,₈', r.P78, r.t8], ['P₉', r.P9, r.T9]];
+    const lrow = this.decol(lv.map(L => ({ lbl: L[0], p: L[1], t: L[2], y: S.Y(L[1]) })), 'y', 21);
+    lrow.forEach((L, i) => {
+      const ty = S.Y(L.p);
+      c.push(e('line', { key: 'pl' + i, x1: 134, x2: S.X(L.t), y1: ty, y2: ty, stroke: C.faint, strokeWidth: 0.9, strokeDasharray: '5 4' }));
+      c.push(e('path', { key: 'pd' + i, d: 'M104 ' + L.y.toFixed(1) + 'L120 ' + L.y.toFixed(1) + 'L134 ' + ty.toFixed(1), fill: 'none', stroke: '#cfc8bb', strokeWidth: 0.9 }));
+      c.push(e('text', { key: 'pt' + i, x: 78, y: L.y + 5, fill: C.ink, fontSize: 14, fontFamily: 'IBM Plex Mono, monospace', fontWeight: 500 }, L.lbl));
+    });
+    const br = [['ΔP GV', r.P1, r.P2], ['ΔP VL', r.P2, r.P3], ['ΔP COND', r.P3, r.P5], ['ΔP LL', r.P6, r.P78], ['ΔP WICK', r.P78, r.P9]];
+    const bx = 68;
+    br.forEach((B, i) => {
+      const y1 = S.Y(B[1]), y2 = S.Y(B[2]);
+      if (Math.abs(y2 - y1) < 11) return;
+      c.push(e('line', { key: 'bl' + i, x1: bx, x2: bx, y1: y1, y2: y2, stroke: C.ink, strokeWidth: 1 }));
+      c.push(e('path', { key: 'ba' + i, d: 'M' + (bx - 3.4) + ' ' + (y1 + 5) + 'L' + bx + ' ' + y1 + 'L' + (bx + 3.4) + ' ' + (y1 + 5) + ' M' + (bx - 3.4) + ' ' + (y2 - 5) + 'L' + bx + ' ' + y2 + 'L' + (bx + 3.4) + ' ' + (y2 - 5), fill: 'none', stroke: C.ink, strokeWidth: 1 }));
+      c.push(e('text', { key: 'bt' + i, x: bx - 8, y: (y1 + y2) / 2 + 4, textAnchor: 'end', fill: C.ink, fontSize: 12.5, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, B[0]));
+    });
+    const tl = [['T₆', r.T6, r.P6], ['T₇', r.T7, r.P78], ['T₈', r.t8, r.P78], ['T₅', r.T5, r.P5], ['T₄', r.T4, r.P4],
+      ['T₃', r.T3, r.P3], ['T₁', r.T1, r.P1], ['T₂', r.T2, r.P2]];
+    const trow = this.decol(tl.map(L => ({ lbl: L[0], t: L[1], p: L[2], x: S.X(L[1]) })), 'x', 30);
+    const yb = o.h - o.mb;
+    trow.forEach((L, i) => {
+      const tx = S.X(L.t);
+      c.push(e('line', { key: 'tl' + i, x1: tx, x2: tx, y1: S.Y(L.p), y2: yb, stroke: C.faint, strokeWidth: 0.9, strokeDasharray: '5 4' }));
+      c.push(e('path', { key: 'td' + i, d: 'M' + tx.toFixed(1) + ' ' + yb + 'L' + tx.toFixed(1) + ' ' + (yb + 8) + 'L' + L.x.toFixed(1) + ' ' + (yb + 17), fill: 'none', stroke: '#cfc8bb', strokeWidth: 0.9 }));
+      c.push(e('text', { key: 'tt' + i, x: L.x, y: yb + 31, textAnchor: 'middle', fill: C.ink, fontSize: 14, fontFamily: 'IBM Plex Mono, monospace' }, L.lbl));
+    });
+    c.push(e('path', { key: 'vb', d: this.d([[r.T9, r.P9], [r.T1, r.P1], [r.T2, r.P2], [r.T3, r.P3], [r.T4, r.P4]], S), fill: 'none', stroke: C.vap, strokeWidth: 2.8, strokeLinejoin: 'round' }));
+    c.push(e('path', { key: 'lb', d: this.d([[r.T4, r.P4], [r.T5, r.P5], [r.T6, r.P6], [r.T7, r.P78], [r.t8, r.P78]], S), fill: 'none', stroke: C.liq, strokeWidth: 2.8, strokeDasharray: '9 5', strokeLinejoin: 'round' }));
+    c.push(e('path', { key: 'wk', d: this.d([[r.t8, r.P78], [r.T9, r.P9]], S), fill: 'none', stroke: C.wick, strokeWidth: 2.8, strokeDasharray: '11 4 3 4' }));
+    c.push(e('text', { key: 'cap', x: o.ml + 12, y: o.mt + 22, fill: C.vap, fontSize: 13, fontFamily: 'IBM Plex Mono, monospace' }, 'ΔP cap = P₁ − P₉ = ' + r.dpCap.toFixed(4)));
+
+    const side = { '1': 'L', '2': 'R', '2′': 'L', '3': 'R', '4': 'R', '5': 'L', '6': 'L', '7': 'L', '8': 'L', '9': 'R' };
+    const nl = P.map(pt => ({ lbl: pt.id, shape: pt.shape, sx: S.X(pt.t), sy: S.Y(pt.p), side: side[pt.id] }));
+    nl.forEach((n, i) => c.push(this.glyph('g' + i, n.shape, n.sx, n.sy, hi === n.lbl)));
+    c.push.apply(c, this.stackLabels(o, S, nl, hi));
+    nl.forEach((n, i) => c.push(this.hitArea('gh' + i, n.sx, n.sy, n.lbl, true)));
+    return e('svg', { 'data-chart': 'main', viewBox: '0 0 ' + o.w + ' ' + o.h, role: 'img', 'aria-label': 'Pressure-temperature diagram of the loop heat pipe cycle', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- global P-T ---
+  ptGlobal(r, g) {
+    const e = React.createElement, C = this.COL;
+    const o = { w: 470, h: 330, ml: 62, mr: 66, mt: 26, mb: 46, xr: [0.5, 1.0], yr: [1.2e-3, 1.4], logy: true,
+      xticks: [0.6, 0.7, 0.8, 0.9, 1.0], yticks: [1e-3, 1e-2, 1e-1, 1],
+      xfmt: v => v.toFixed(1), yfmt: v => ({ '0.001': '10⁻³', '0.01': '10⁻²', '0.1': '10⁻¹', '1': '1' })[String(v)] || v,
+      xlab: 'T r', ylab: 'P r  (log)' };
+    const S = this.sc(o), c = [];
+    c.push.apply(c, this.frame(o, S));
+    const sat = []; for (let t = 0.5; t <= 1.0001; t += 0.005) sat.push([t, this.pr(t)]);
+    c.push(e('path', { key: 'sat', d: this.d(sat, S), fill: 'none', stroke: C.sat, strokeWidth: 2.6 }));
+    c.push(e('circle', { key: 'cp', cx: S.X(1), cy: S.Y(1), r: 3.4, fill: '#faf8f4', stroke: C.ink, strokeWidth: 1.6 }));
+    c.push(e('text', { key: 'cpt', x: S.X(1) - 6, y: S.Y(1) - 10, textAnchor: 'end', fill: C.ink, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'CP'));
+    c.push(e('text', { key: 'lq', x: S.X(0.55), y: S.Y(0.42), fill: C.liq, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, 'liquid'));
+    c.push(e('text', { key: 'vp', x: S.X(0.84), y: S.Y(3.2e-3), fill: C.vap, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, 'vapour'));
+    const box = m => { const t1 = Math.min(m.T6, m.T7), t2 = Math.max(m.T2, m.T1);
+      return [[t1, m.P9], [t2, m.P9], [t2, m.P1], [t1, m.P1], [t1, m.P9]]; };
+    if (g) {
+      c.push(e('path', { key: 'gb', d: this.d(box(g), S), fill: 'none', stroke: C.ghost, strokeWidth: 1.5, strokeDasharray: '5 4' }));
+      c.push(e('circle', { key: 'gd', cx: S.X(g.t8), cy: S.Y(g.P78), r: 3.2, fill: C.ghost }));
+      const gy = Math.min(o.h - o.mb - 6, S.Y(g.P9) + 15);
+      c.push(e('text', { key: 'gt', x: S.X(Math.min(g.T6, g.T7)) - 6, y: gy, textAnchor: 'end', fill: '#7d7466', fontSize: 11.5, fontWeight: 500, fontFamily: 'IBM Plex Mono, monospace', paintOrder: 'stroke', stroke: '#faf8f4', strokeWidth: 3, strokeLinejoin: 'round' }, 'ref'));
+    }
+    c.push(e('path', { key: 'bx', d: this.d(box(r), S), fill: C.vap, fillOpacity: 0.09, stroke: C.vap, strokeWidth: 1.8 }));
+    c.push(this.glyph('op', 's', S.X(r.t8), S.Y(r.P78), false));
+    c.push(e('text', { key: 'opt', x: S.X(r.t8) - 10, y: S.Y(r.P78) + 17, textAnchor: 'end', fill: C.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, '8'));
+    c.push(e('line', { key: 'hl', x1: o.ml, x2: o.w - o.mr, y1: S.Y(r.P78), y2: S.Y(r.P78), stroke: C.vap, strokeWidth: 0.9, strokeDasharray: '3 3' }));
+    c.push(e('text', { key: 'hlt', x: o.w - o.mr + 7, y: S.Y(r.P78) + 4, fill: C.vap, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, r.P78.toFixed(4)));
+    c.push(e('text', { key: 'zn', x: o.ml + 9, y: o.mt + 16, fill: C.faint, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'box = extent of the main figure'));
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, role: 'img', 'aria-label': 'Global pressure-temperature plane with the cycle extent', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- T-s ---
+  tsChart(r, g, hi) {
+    const e = React.createElement, C = this.COL;
+    const o = { w: 470, h: 360, ml: 62, mr: 26, mt: 26, mb: 46, xr: [0, 6.4], yr: [0.48, 1.05],
+      xticks: [0, 1, 2, 3, 4, 5, 6], yticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+      xfmt: v => v, yfmt: v => v.toFixed(1), xlab: 's *', ylab: 'T r  ↑' };
+    const S = this.sc(o), c = [];
+    c.push.apply(c, this.frame(o, S));
+    const dl = [], dv = [];
+    for (let t = 0.5; t <= 1.0001; t += 0.005) { dl.push([this.sl(t), t]); dv.push([this.sv(t), t]); }
+    c.push(e('path', { key: 'dl', d: this.d(dl, S), fill: 'none', stroke: C.liq, strokeWidth: 2, strokeDasharray: '9 5' }));
+    c.push(e('path', { key: 'dv', d: this.d(dv, S), fill: 'none', stroke: C.vap, strokeWidth: 2 }));
+    c.push(e('circle', { key: 'cp', cx: S.X(this.sl(1)), cy: S.Y(1), r: 3.4, fill: '#faf8f4', stroke: C.ink, strokeWidth: 1.6 }));
+    c.push(e('text', { key: 'cpt', x: S.X(this.sl(1)), y: S.Y(1) - 10, textAnchor: 'middle', fill: C.ink, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'CP'));
+    const cyc = m => [[this.sl(m.t8), m.t8], [this.sl(m.T9), m.T9], [this.sv(m.T1), m.T1],
+      [this.ssh(m.T2, m.P2), m.T2], [this.ssh(m.T3, m.P3), m.T3], [this.sv(m.T4), m.T4],
+      [this.sl(m.T5), m.T5], [this.sl(m.T6), m.T6], [this.sl(m.T7), m.T7], [this.sl(m.t8), m.t8]];
+    if (g) c.push(e('path', { key: 'gc', d: this.d(cyc(g), S), fill: 'none', stroke: C.ghost, strokeWidth: 1.5, strokeDasharray: '5 4' }));
+    c.push(e('path', { key: 'cy', d: this.d(cyc(r), S), fill: C.vap, fillOpacity: 0.08, stroke: C.vap, strokeWidth: 2.4, strokeLinejoin: 'round' }));
+    const P = this.pointList(r).filter(p => p.id !== '2′' && p.id !== '3' && p.id !== '7');
+    const pts = P.map(p => ({ lbl: p.id, shape: p.shape, sx: S.X(p.s), sy: S.Y(p.t), side: p.br === 'vap' ? 'R' : 'L' }));
+    pts.forEach((p, i) => c.push(this.glyph('tg' + i, p.shape, p.sx, p.sy, hi === p.lbl)));
+    c.push.apply(c, this.stackLabels(o, S, pts, hi));
+    pts.forEach((p, i) => c.push(this.hitArea('th' + i, p.sx, p.sy, p.lbl)));
+    const ds = this.sv(r.T1) - this.sl(r.T1);
+    c.push(e('text', { key: 'dsl', x: (S.X(this.sl(r.T1)) + S.X(this.sv(r.T1))) / 2, y: S.Y(r.T1) - 13, textAnchor: 'middle', fill: C.vap, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'Δs = ' + ds.toFixed(2)));
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, role: 'img', 'aria-label': 'Temperature-entropy diagram of the cycle', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- pressure profile ---
+  profChart(r, hi) {
+    const e = React.createElement, C = this.COL;
+    const st = [['8', r.P78, 'liq'], ['9', r.P9, 'wick'], ['1', r.P1, 'vap'], ['2', r.P2, 'vap'], ['3', r.P3, 'vap'],
+      ['4', r.P4, 'vap'], ['5', r.P5, 'liq'], ['6', r.P6, 'liq'], ['7', r.P78, 'liq'], ['8', r.P78, 'liq']];
+    const vs = st.map(s => s[1]), lo = Math.min.apply(null, vs), hiv = Math.max.apply(null, vs), pd = (hiv - lo) * 0.26;
+    const o = { w: 560, h: 320, ml: 84, mr: 92, mt: 30, mb: 58, xr: [0, 9], yr: [lo - pd, hiv + pd],
+      xticks: [], yticks: [lo - pd * 0.5, (lo + hiv) / 2, hiv + pd * 0.5], xfmt: v => v, yfmt: v => v.toFixed(4), xlab: 'loop station', ylab: 'P r  ↑' };
+    const S = this.sc(o), c = [];
+    c.push.apply(c, this.frame(o, S));
+    c.push(e('line', { key: 'zz', x1: o.ml, x2: o.w - o.mr, y1: S.Y(r.P78), y2: S.Y(r.P78), stroke: C.faint, strokeWidth: 0.9, strokeDasharray: '4 4' }));
+    c.push(e('text', { key: 'zt', x: o.w - o.mr + 7, y: S.Y(r.P78) + 4, fill: C.faint, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'P 7,8 (CC)'));
+    const pts = st.map((s, i) => [i, s[1]]);
+    c.push(e('path', { key: 'a', d: this.d(pts.slice(0, 2), S), fill: 'none', stroke: C.wick, strokeWidth: 2.6, strokeDasharray: '11 4 3 4' }));
+    c.push(e('path', { key: 'b', d: this.d(pts.slice(1, 6), S), fill: 'none', stroke: C.vap, strokeWidth: 2.6, strokeLinejoin: 'round' }));
+    c.push(e('path', { key: 'cc', d: this.d(pts.slice(5, 10), S), fill: 'none', stroke: C.liq, strokeWidth: 2.6, strokeDasharray: '9 5', strokeLinejoin: 'round' }));
+    const seg = [['ΔP WICK', 0, 1], ['ΔP cap', 1, 2], ['ΔP VL', 3, 4], ['ΔP COND', 4, 7], ['ΔP LL', 8, 9]];
+    seg.forEach((g2, i) => {
+      const xm = (S.X(g2[1]) + S.X(g2[2])) / 2, ym = Math.min(S.Y(st[g2[1]][1]), S.Y(st[g2[2]][1])) - 13;
+      c.push(e('text', { key: 'sg' + i, x: xm, y: ym, textAnchor: 'middle', fill: i === 1 ? C.vap : C.faint, fontSize: 12, fontFamily: 'Source Serif 4, serif', fontStyle: 'italic' }, g2[0]));
+    });
+    const yb = o.h - o.mb;
+    pts.forEach((p, i) => {
+      const hl = hi === st[i][0];
+      c.push(this.glyph('pg' + i, st[i][2] === 'liq' ? 's' : (st[i][2] === 'wick' ? 'd' : 'c'), S.X(p[0]), S.Y(p[1]), hl));
+      c.push(e('text', { key: 'pl' + i, x: S.X(p[0]), y: yb + 20, textAnchor: 'middle', fill: hl ? C.hi : C.ink, fontSize: hl ? 15 : 13.5, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, st[i][0]));
+      c.push(this.hitArea('ph' + i, S.X(p[0]), S.Y(p[1]), st[i][0]));
+    });
+    return e('svg', { viewBox: '0 0 ' + o.w + ' ' + o.h, role: 'img', 'aria-label': 'Pressure distribution around the loop', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  condBar(r, hi) {
+    const e = React.createElement, C = this.COL, w = 470, h = 120, x0 = 6, x1 = w - 6;
+    const xf = x0 + (x1 - x0) * Math.min(0.94, Math.max(0.06, r.f));
+    const c = [];
+    c.push(e('text', { key: 'ttl', x: x0, y: 13, fill: C.faint, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, 'condenser length, inlet → outlet'));
+    c.push(e('rect', { key: 'a', x: x0, y: 26, width: xf - x0, height: 30, fill: C.vap, fillOpacity: 0.16, stroke: C.vap, strokeWidth: 1.2 }));
+    c.push(e('rect', { key: 'b', x: xf, y: 26, width: x1 - xf, height: 30, fill: C.liq, fillOpacity: 0.13, stroke: C.liq, strokeWidth: 1.2, strokeDasharray: '9 5' }));
+    c.push(e('line', { key: 'i', x1: xf, x2: xf, y1: 18, y2: 64, stroke: C.ink, strokeWidth: 1.8 }));
+    c.push(e('text', { key: 'l1', x: (x0 + xf) / 2, y: 46, textAnchor: 'middle', fill: C.vap, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, 'two-phase'));
+    c.push(e('text', { key: 'l2', x: (xf + x1) / 2, y: 46, textAnchor: 'middle', fill: C.liq, fontSize: 12, fontFamily: 'IBM Plex Mono, monospace' }, 'subcooled'));
+    [['4', x0, 'c'], ['5', xf, 's'], ['6', x1, 's']].forEach((m, i) => {
+      c.push(this.glyph('cg' + i, m[2], m[1], 70, hi === m[0]));
+      c.push(e('text', { key: 'ct' + i, x: m[1], y: 92, textAnchor: 'middle', fill: hi === m[0] ? C.hi : C.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }, m[0]));
+      c.push(this.hitArea('ch' + i, m[1], 70, m[0]));
+    });
+    c.push(e('text', { key: 'nm', x: x1, y: 114, textAnchor: 'end', fill: C.faint, fontSize: 11.5, fontFamily: 'IBM Plex Mono, monospace' }, 'L 2φ / L c = ' + r.f.toFixed(3) + '     ΔT sub = ' + r.sub.toFixed(4)));
+    return e('svg', { viewBox: '0 0 ' + w + ' ' + h, role: 'img', 'aria-label': 'Condenser two-phase and subcooled length split', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' } }, c);
+  }
+
+  // --- exports ---
+  dl(name, mime, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+    a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  doCsv() {
+    const s = this.state, r = this.solve(s.tcc, s.q, s.tsink), P = this.pointList(r);
+    const rows = [['# LHP reduced-property model'], ['# Tr_cc', s.tcc.toFixed(4)], ['# Q*', s.q.toFixed(3)], ['# Tr_sink', s.tsink.toFixed(4)], [],
+      ['point', 'state', 'Tr', 'Pr', 's*']];
+    P.forEach(p => rows.push([p.id, '"' + p.name + '"', p.t.toFixed(5), p.p.toFixed(6), p.s.toFixed(4)]));
+    rows.push([], ['quantity', 'value'],
+      ['dPr_dTr', r.dpdt.toFixed(4)], ['rho_v*', r.rv.toFixed(4)], ['h_fg*', r.hfg.toFixed(4)], ['mdot*', r.mdot.toFixed(4)],
+      ['dP_GV', r.dpGV.toFixed(6)], ['dP_VL', r.dpVL.toFixed(6)], ['dP_COND', r.dpCO.toFixed(6)], ['dP_LL', r.dpLL.toFixed(6)], ['dP_WICK', r.dpWK.toFixed(6)],
+      ['dP_cap', r.dpCap.toFixed(6)], ['dP_cap_max', r.dpMax.toFixed(6)], ['capillary_margin', r.capM.toFixed(4)],
+      ['L2phi_over_Lc', r.f.toFixed(4)], ['dT_sub_required', r.subReq.toFixed(5)], ['dT_sub_available', r.subAv.toFixed(5)], ['subcooling_margin', r.subM.toFixed(4)]);
+    this.dl('lhp-operating-point.csv', 'text/csv', rows.map(x => x.join(',')).join('\n'));
+  }
+  doPng() {
+    const svg = document.querySelector('svg[data-chart="main"]');
+    if (!svg) return;
+    const src = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = 2120; cv.height = 1080;
+      const cx = cv.getContext('2d');
+      cx.fillStyle = '#faf8f4'; cx.fillRect(0, 0, cv.width, cv.height);
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(b => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b); a.download = 'lhp-pt-diagram.png'; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      });
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<?xml version="1.0"?>' + src);
+  }
+  doLink() {
+    this.syncHash();
+    try { navigator.clipboard.writeText(location.href); } catch (e) { /* ignore */ }
+    this.setState({ linked: true });
+    setTimeout(() => this.setState({ linked: false }), 1800);
+  }
+
+  renderVals() {
+    const s = this.state, C = this.COL;
+    const ref = this.props.refTcc ?? 0.78;
+    const r = this.solve(s.tcc, s.q, s.tsink);
+    const g = s.ghost ? this.solve(ref, s.q, s.tsink) : null;
+    const P = this.pointList(r);
+    const act = s.hi || s.sel;
+    const hiPt = P.filter(p => p.id === act)[0] || null;
+
+    const dryout = r.dpCap >= r.dpMax, starve = r.subReq > r.subAv;
+    let statusTitle, statusBody, statusColor;
+    const fx = v => v.toFixed(3), fq = v => v.toFixed(2), n4 = v => v.toFixed(4);
+    const binding0 = r.subM < r.capM ? 'sub' : 'cap';
+    const upT = fx(Math.min(0.92, s.tcc + 0.05)), dnQ = fq(Math.max(0.1, s.q * 0.6)), dnT = fx(Math.max(0.45, s.tsink - 0.05));
+    if (dryout) {
+      statusColor = '#b8442f'; statusTitle = 'Capillary limit exceeded';
+      statusBody = 'ΔP_cap has grown past 2σ/r_p, so the meniscus cannot hold and the evaporator dries out. Cause: at T_r,cc = ' + fx(s.tcc) + ' the vapour is thin, so ΔP_VL dominates. To recover, raise CC temperature to about ' + upT + ', or drop the heat load to about ' + dnQ + '.';
+    } else if (starve) {
+      statusColor = '#b8442f'; statusTitle = 'Subcooling starved';
+      statusBody = 'The returning liquid cannot absorb the heat leak into the CC. Cause: ΔT_sub,req = ' + n4(r.subReq) + ' against only ' + n4(r.subAv) + ' available, because L_2φ/L_c = ' + fx(r.f) + ' leaves little subcooler length. To recover, lower the sink temperature to about ' + dnT + ', or raise the heat load to thicken the flow.';
+    } else if (Math.min(r.capM, r.subM) < 0.25) {
+      statusColor = '#a4790f'; statusTitle = 'Feasible, low margin';
+      statusBody = 'The point closes, but the ' + (binding0 === 'sub' ? 'subcooling' : 'capillary') + ' budget has less than a quarter left. ' + (binding0 === 'sub' ? 'Lower T_r,sink or raise Q* to buy subcooler length.' : 'Raise T_r,cc a few hundredths to gain vapour density.');
+    } else {
+      statusColor = '#2f6b4f'; statusTitle = 'Feasible';
+      statusBody = 'Capillary head and subcooling both have room. The loop will settle here with the CC free to follow the sink temperature and load.';
+    }
+    const binding = binding0;
+    const pct = v => (v <= -1 ? 'n/a' : (v * 100).toFixed(0) + ' %');
+    const barW = v => Math.max(0, Math.min(100, v * 100)).toFixed(0) + '%';
+    const mcol = v => (v < 0 ? '#b8442f' : v < 0.25 ? '#a4790f' : '#2f6b4f');
+    const f3 = v => v.toFixed(3), f4 = v => v.toFixed(4), f2 = v => v.toFixed(2);
+    const bg = id => (s.sel === id ? '#d5ebe2' : act === id ? '#e4f2ec' : 'transparent');
+    const hEnter = id => () => this.setState({ hi: id });
+    const rowId = ev => { const tr = ev.target && ev.target.closest ? ev.target.closest('tr') : null; return tr ? tr.getAttribute('data-pt') : null; };
+
+    let warn = null;
+    if (s.oor) warn = s.oor;
+    else if (s.tsink >= s.tcc) warn = 'T_r,sink (' + f3(s.tsink) + ') is at or above T_r,cc (' + f3(s.tcc) + '). The condenser cannot reject heat; the model output below is not physical.';
+    else if (r.nonphys) warn = 'The wick pressure loss ΔP_WICK (' + f4(r.dpWK) + ') now exceeds the whole CC pressure P₇,₈ (' + f4(r.P78) + '), so P₉ would be negative. Point 9 is not a physical state here and is shown clamped; the loop has long since dried out.';
+    else if (dryout) warn = 'Capillary limit exceeded — the curves below show the formal solution of the equations, not a state the hardware can reach.';
+
+    return {
+      tcc: s.tcc, q: s.q, tsink: s.tsink, ghost: s.ghost, showEq: s.showEq, warn,
+      refS: ref.toFixed(3), rpS: (this.props.poreRadius ?? 1.0).toFixed(2),
+      eqArrow: s.showEq ? '▾' : '▸',
+      switchBg: s.ghost ? '#a9a091' : '#efebe2', switchX: s.ghost ? '18px' : '3px',
+      flashColor: '#2f6b4f', flashLabel: 'live — recomputed on every input',
+      linkLabel: s.linked ? '✓ Copied' : 'Copy link',
+
+      capMarginS: pct(r.capM), subMarginS: pct(r.subM),
+      capBarW: barW(r.capM), subBarW: barW(r.subM),
+      capBorder: mcol(r.capM), subBorder: mcol(r.subM),
+      capTag: binding === 'cap' ? 'binding' : '', subTag: binding === 'sub' ? 'binding' : '',
+      regimeName: starve ? 'Variable conductance' : 'Fixed conductance',
+      regimeNote: starve ? 'ΔT_sub,req > ΔT_sub,av — the CC temperature is set by its own energy balance, not by the sink.'
+        : 'L_2φ/L_c = ' + f3(r.f) + ' with subcooling to spare, so the CC follows the sink and the load.',
+      statusTitle, statusBody, statusColor,
+
+      t1S: f3(r.T1), t2S: f3(r.T2), t2pS: f3(r.T2p), t3S: f3(r.T3), t4S: f3(r.T4), t5S: f3(r.T5),
+      t6S: f3(r.T6), t7S: f3(r.T7), t8S: f3(r.t8), t9S: f3(r.T9),
+      p1S: f4(r.P1), p2S: f4(r.P2), p3S: f4(r.P3), p4S: f4(r.P4), p5S: f4(r.P5), p6S: f4(r.P6), p78S: f4(r.P78), p9S: r.nonphys ? 'n/a' : f4(r.P9),
+      s1S: f2(P[0].s), s2S: f2(P[1].s), s2pS: f2(P[2].s), s3S: f2(P[3].s), s4S: f2(P[4].s),
+      s5S: f2(P[5].s), s6S: f2(P[6].s), s7S: f2(P[7].s), s8S: f2(P[8].s), s9S: f2(P[9].s),
+      dpCapS: f4(r.dpCap), dpMaxS: f4(r.dpMax), subReqS: f4(r.subReq), subAvailS: f4(r.subAv),
+
+      hiId: hiPt ? hiPt.id : '—',
+      hiName: hiPt ? hiPt.name : 'Hover a state point or a table row',
+      hiVals: hiPt ? 'T r ' + f3(hiPt.t) + '   P r ' + f4(hiPt.p) + '   s * ' + f2(hiPt.s) : '',
+      hiNote: hiPt ? hiPt.note : '',
+      hiColor: hiPt ? C.hi : C.faint,
+      hiBorder: hiPt ? C.hi : '#cfc8bb',
+      sel: !!s.sel,
+      pinTag: s.sel ? (s.hi && s.hi !== s.sel ? 'previewing · ' + s.sel + ' pinned' : 'pinned') : (hiPt ? 'click to pin' : ''),
+      tblClick: ev => { const id = rowId(ev); if (id) this.pick(id); },
+      tblKey: ev => { if (ev.key !== 'Enter' && ev.key !== ' ') return; const id = rowId(ev); if (id) { ev.preventDefault(); this.pick(id); } },
+      clearSel: () => this.setState({ sel: null }),
+      bg1: bg('1'), bg2: bg('2'), bg2p: bg('2′'), bg3: bg('3'), bg4: bg('4'),
+      bg5: bg('5'), bg6: bg('6'), bg7: bg('7'), bg8: bg('8'), bg9: bg('9'),
+      h1: hEnter('1'), h2: hEnter('2'), h2p: hEnter('2′'), h3: hEnter('3'), h4: hEnter('4'),
+      h5: hEnter('5'), h6: hEnter('6'), h7: hEnter('7'), h8: hEnter('8'), h9: hEnter('9'),
+      hLeave: () => this.setState({ hi: null }),
+
+      schematic: this.schematic(r, act),
+      ptDetail: this.ptDetail(r, act), ptGlobal: this.ptGlobal(r, g),
+      tsChart: this.tsChart(r, g, act), profChart: this.profChart(r, act), condBar: this.condBar(r, act),
+
+      onTcc: ev => this.setIn('tcc', ev.target.value),
+      onQ: ev => this.setIn('q', ev.target.value),
+      onTsink: ev => this.setIn('tsink', ev.target.value),
+      onTccNum: ev => this.setIn('tcc', ev.target.value),
+      onQNum: ev => this.setIn('q', ev.target.value),
+      onTsinkNum: ev => this.setIn('tsink', ev.target.value),
+      toggleGhost: () => this.setState(p => ({ ghost: !p.ghost }), () => this.syncHash()),
+      toggleEq: () => this.setState(p => ({ showEq: !p.showEq })),
+      doReset: () => this.setState({ tcc: this.DEF.tcc, q: this.DEF.q, tsink: this.DEF.tsink, oor: null }, () => this.syncHash()),
+      doCsv: () => this.doCsv(),
+      doPng: () => this.doPng(),
+      doLink: () => this.doLink()
+    };
+  }
+}
+</script>
+</body>
+</html>
