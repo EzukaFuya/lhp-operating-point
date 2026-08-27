@@ -3,7 +3,7 @@
  * and shared. Ported from the prototype's componentDidMount + syncHash.
  */
 
-import { clampInput, type InputKey } from '../model/constants'
+import { clampInput, type InputKey } from './model/constants.js'
 
 export interface Inputs {
   tcc: number

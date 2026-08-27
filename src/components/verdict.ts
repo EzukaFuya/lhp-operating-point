@@ -6,9 +6,9 @@
  * Ported from the prototype's renderVals().
  */
 
-import { RNG, STATUS } from '../model/constants'
-import type { Solution } from '../model/solve'
-import type { Inputs } from './url'
+import { RNG, STATUS } from './model/constants.js'
+import type { Solution } from './model/solve.js'
+import type { Inputs } from './url.js'
 
 const f3 = (v: number) => v.toFixed(3)
 const f4 = (v: number) => v.toFixed(4)

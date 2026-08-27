@@ -3,8 +3,8 @@
  * dl / doCsv / doPng / doLink.
  */
 
-import { pointList, type Solution } from '../model/solve'
-import type { Inputs } from './url'
+import { pointList, type Solution } from './model/solve.js'
+import type { Inputs } from './url.js'
 
 /** Hand the browser a generated file through a plain anchor download. */
 function anchorDownload(name: string, blob: Blob): void {

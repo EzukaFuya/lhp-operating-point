@@ -1,5 +1,8 @@
 node_modules/
 dist/
-dist-single/
+.observablehq/cache/
+src/.observablehq/cache/
+.vendor-entries/
 *.local
 .DS_Store
+dist-single/

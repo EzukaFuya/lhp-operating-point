@@ -4,7 +4,7 @@
  * critical point. Ported verbatim from the design prototype.
  */
 
-import { A, CV } from './constants'
+import { A, CV } from './constants.js'
 
 /** Saturation pressure: ln Pr = A(1 − 1/Tr). */
 export const pr = (tr: number): number => Math.exp(A * (1 - 1 / tr))

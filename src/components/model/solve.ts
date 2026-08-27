@@ -7,8 +7,8 @@
  * Ported verbatim from the design prototype; the numbers are qualitative.
  */
 
-import { CV, PORE_RADIUS } from './constants'
-import { dpdt, hfg, mul, pr, rhol, rhov, sig, sl, ssh, sv, trs } from './properties'
+import { CV, PORE_RADIUS } from './constants.js'
+import { dpdt, hfg, mul, pr, rhol, rhov, sig, sl, ssh, sv, trs } from './properties.js'
 
 export interface Solution {
   // inputs
