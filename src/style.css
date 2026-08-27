@@ -423,16 +423,35 @@ button {
   line-height: 1.6;
 }
 
-/* Outcome of the passive search — informational, not a failure. */
+/*
+ * Outcome of the passive search. A found-and-reachable point reads as a
+ * result; a root the loop cannot actually run at reads as a caution, so it is
+ * never mistaken for one.
+ */
 .note {
   margin-top: 16px;
-  border: 1px solid #9db3a8;
-  background: #eef5f1;
   padding: 11px 14px;
   font-family: var(--mono);
   font-size: 12px;
-  color: #1d5945;
   line-height: 1.6;
+}
+
+.note-ok {
+  border: 1px solid #9db3a8;
+  background: #eef5f1;
+  color: #1d5945;
+}
+
+.note-warn {
+  border: 1px solid #c9a227;
+  background: #fbf6e7;
+  color: #6d5308;
+}
+
+.note-none {
+  border: 1px solid var(--edge);
+  background: var(--wash);
+  color: var(--faint);
 }
 
 /* The one action that changes what the page is showing, so it reads as the

@@ -254,17 +254,29 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
 
 /** Outcome of searching for the CC temperature a passive loop settles at. */
 export interface OperatingPoint {
-  /** True when a temperature satisfying Rcc = 0 was bracketed and converged. */
+  /**
+   * The energy balance closed: a temperature with Rcc = 0 was bracketed and
+   * bisected. This says nothing about whether the loop could run there.
+   */
+  energyConverged: boolean
+  /**
+   * The state at that temperature is one the hardware can reach — the
+   * capillary and subcooling budgets both close too. An energy-balance root
+   * that dries the evaporator out is a root of the equations, not an
+   * operating point.
+   */
+  reachable: boolean
+  /** Both of the above: a genuine passive operating point. */
   converged: boolean
-  /** The CC temperature found, or null when none exists in range. */
+  /** The CC temperature found, or null when no root exists in range. */
   tcc: number | null
   /** The solution there, or null. */
   solution: Solution | null
   /** |Rcc| at the returned point. */
   residual: number
-  /** Bisection steps taken. */
+  /** Bisection steps taken, summed over every bracket tried. */
   iterations: number
-  /** Why the search failed, when it did. */
+  /** Why the result is not a usable operating point, when it is not. */
   note: string
 }
 
@@ -273,10 +285,18 @@ export interface OperatingPoint {
  * temperature — the temperature at which the CC energy balance closes on its
  * own, Rcc(T_cc) = 0, with no heater or cooler on the compensation chamber.
  *
- * Rcc is not guaranteed monotonic in T_cc across the whole range, so the range
- * is scanned for a sign change first and the first bracket found is bisected.
- * Bisection rather than a secant method because Rcc is only piecewise smooth —
- * `f` saturates at 1 and several terms clamp at zero.
+ * Two things make this more than a one-shot root find:
+ *
+ * Rcc is not monotonic in T_cc across the range — `f` saturates at 1 and
+ * several terms clamp at zero — so the range is scanned for every sign change
+ * and each bracket is bisected. Bisection rather than a secant method for the
+ * same reason: the function is only piecewise smooth.
+ *
+ * And a root of the energy balance is not automatically a state the loop can
+ * run in. The capillary and subcooling budgets have to close there too. Where
+ * several roots exist, a reachable one is preferred; where none is reachable,
+ * the root is still returned, with `reachable` false and a note saying why it
+ * is not an operating point.
  */
 export function solveOperatingPoint(
   q: number,
@@ -290,80 +310,121 @@ export function solveOperatingPoint(
   // reject heat and the model is meaningless.
   const lo = Math.max(range[0], tsink + 1e-3)
   const hi = range[1]
-  if (!(hi > lo))
-    return {
-      converged: false,
-      tcc: null,
-      solution: null,
-      residual: NaN,
-      iterations: 0,
-      note: 'The sink temperature leaves no CC temperature range to search.',
-    }
+  const nothing = (note: string, iterations = 0): OperatingPoint => ({
+    energyConverged: false,
+    reachable: false,
+    converged: false,
+    tcc: null,
+    solution: null,
+    residual: NaN,
+    iterations,
+    note,
+  })
 
-  const STEPS = 96
+  if (!(hi > lo)) return nothing('The sink temperature leaves no CC temperature range to search.')
+
+  // --- collect every bracket, not just the first ---
+  const STEPS = 192
+  const brackets: Array<[number, number]> = []
   let aT = lo
   let aR = residualAt(aT)
-  let bracket: [number, number, number, number] | null = null
 
   for (let i = 1; i <= STEPS; i++) {
     const bT = lo + ((hi - lo) * i) / STEPS
     const bR = residualAt(bT)
-    if (Number.isFinite(aR) && Number.isFinite(bR) && aR === 0) {
-      bracket = [aT, aT, aR, aR]
-      break
-    }
-    if (Number.isFinite(aR) && Number.isFinite(bR) && aR * bR < 0) {
-      bracket = [aT, bT, aR, bR]
-      break
+    if (Number.isFinite(aR) && Number.isFinite(bR)) {
+      if (aR === 0) brackets.push([aT, aT])
+      else if (aR * bR < 0) brackets.push([aT, bT])
     }
     aT = bT
     aR = bR
   }
 
-  if (!bracket)
-    return {
-      converged: false,
-      tcc: null,
-      solution: null,
-      residual: NaN,
-      iterations: STEPS,
-      note:
-        'The CC energy balance does not change sign anywhere in ' +
+  if (!brackets.length)
+    return nothing(
+      'The CC energy balance does not change sign anywhere in ' +
         `T_r,cc ∈ [${lo.toFixed(3)}, ${hi.toFixed(3)}], so this load and sink ` +
         'temperature admit no passive operating point in range.',
-    }
+      STEPS,
+    )
 
-  let [x0, x1, r0] = bracket
   const TOL = 1e-10
   const MAX = 80
   let iterations = 0
 
-  while (iterations < MAX && x1 - x0 > 1e-12) {
-    const mid = 0.5 * (x0 + x1)
-    const rm = residualAt(mid)
-    iterations++
-    if (rm === 0 || Math.abs(rm) < TOL) {
-      x0 = mid
-      x1 = mid
-      break
+  /** Bisect one bracket down to the tolerance. */
+  const refine = ([x0in, x1in]: [number, number]): number => {
+    let x0 = x0in
+    let x1 = x1in
+    let r0 = residualAt(x0)
+    let steps = 0
+    let found: number | null = null
+    while (steps < MAX && x1 - x0 > 1e-12) {
+      const mid = 0.5 * (x0 + x1)
+      const rm = residualAt(mid)
+      steps++
+      if (rm === 0 || Math.abs(rm) < TOL) {
+        found = mid
+        break
+      }
+      if (r0 * rm < 0) {
+        x1 = mid
+      } else {
+        x0 = mid
+        r0 = rm
+      }
     }
-    if (r0 * rm < 0) {
-      x1 = mid
-    } else {
-      x0 = mid
-      r0 = rm
-    }
+    iterations += steps
+    return found ?? 0.5 * (x0 + x1)
   }
 
-  const tcc = 0.5 * (x0 + x1)
-  const solution = solve(tcc, q, tsink, rp)
+  const roots = brackets.map((b) => {
+    const tcc = refine(b)
+    return { tcc, solution: solve(tcc, q, tsink, rp) }
+  })
+
+  // Prefer a root the hardware could actually run at; fall back to the first.
+  const usable = roots.find(
+    (r) => r.solution.status === 'closed' && Math.abs(r.solution.Rcc) < 1e-6,
+  )
+  const chosen = usable ?? roots[0]
+  const { tcc, solution } = chosen
+
+  const energyConverged = Math.abs(solution.Rcc) < 1e-6
+  const reachable = solution.status === 'closed'
+
+  let note = ''
+  if (!energyConverged) {
+    note =
+      'The energy balance changed sign but did not converge — |R_cc| = ' +
+      Math.abs(solution.Rcc).toExponential(2) +
+      '. Treat this temperature as approximate.'
+  } else if (!reachable) {
+    const why =
+      solution.status === 'capillary_exceeded'
+        ? 'the capillary limit is exceeded there (margin ' +
+          (solution.capM * 100).toFixed(1) +
+          ' %)'
+        : solution.status === 'subcooling_starved'
+          ? 'the returning liquid cannot absorb the heat leak there'
+          : 'point 9 is not a physical state there'
+    note =
+      'The CC energy balance closes at T_r,cc = ' +
+      tcc.toFixed(4) +
+      ', but that is a root of the equations rather than an operating point: ' +
+      why +
+      '. A passive loop cannot run at this load and sink temperature.'
+  }
+
   return {
-    converged: Math.abs(solution.Rcc) < 1e-6,
+    energyConverged,
+    reachable,
+    converged: energyConverged && reachable,
     tcc,
     solution,
     residual: Math.abs(solution.Rcc),
     iterations,
-    note: '',
+    note,
   }
 }
 

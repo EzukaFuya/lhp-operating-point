@@ -62,6 +62,13 @@ outlet there is no length left to recruit.
 | `f < 1` | variable conductance |
 | `f = 1` | fixed conductance |
 
+This is a classification *within this model*, from a single lumped condenser
+utilisation. The liquid charge distribution and the phase state inside the
+compensation chamber — which set the regime boundary in a real loop, and which
+determine whether the CC still holds a free surface at all — are not solved
+here. Read the label as "the condenser is fully utilised", not as a verified
+mode transition.
+
 ## Running it
 
 ```bash
@@ -103,8 +110,11 @@ npm run build:offline    # = npm run vendor && npm run build
 
 `npm run vendor` installs the same versions from the registry, bundles them
 with esbuild and writes them into `src/.observablehq/cache/_npm`, which is
-where Framework looks before fetching. The built site inlines its modules
-either way, so nothing is fetched from a CDN at run time.
+where Framework looks before fetching. The built site inlines its JavaScript
+either way, so no code is fetched from a CDN at run time — the one remaining
+external request is the Google Fonts stylesheet and its font files, declared
+in `observablehq.config.js`. Drop that `<link>` and self-host the faces if the
+page must load with no third-party requests at all.
 
 ## What the page does
 

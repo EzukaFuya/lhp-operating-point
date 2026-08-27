@@ -89,13 +89,25 @@ const solveNote = Mutable(null);
 function solvePassive() {
   const {q, tsink} = inputs.value;
   const op = solveOperatingPoint(q, tsink);
-  if (!op.converged || op.tcc === null) {
-    solveNote.value = op.note || "The CC energy balance did not converge for this load and sink temperature.";
+
+  // No root at all: nothing to move to.
+  if (op.tcc === null) {
+    solveNote.value = {kind: "none", text: op.note};
     return;
   }
+
   clamped.value = null;
-  solveNote.value = `Passive operating point: T_r,cc = ${op.tcc.toFixed(4)} — found in ${op.iterations} bisection steps, |R_cc| = ${op.residual.toExponential(1)}.`;
   inputs.value = {...inputs.value, tcc: op.tcc};
+
+  // A root of the energy balance is only an operating point if the loop can
+  // actually run there. Moving the slider either way is useful — the figures
+  // then show why it fails — but it must not be called a passive point.
+  solveNote.value = op.converged
+    ? {
+        kind: "ok",
+        text: `Passive operating point: T_r,cc = ${op.tcc.toFixed(4)} — |R_cc| = ${op.residual.toExponential(1)} after ${op.iterations} bisection steps.`
+      }
+    : {kind: "warn", text: op.note};
 }
 
 function setGhost(on) {
@@ -223,7 +235,9 @@ linkBtn.onclick = () => {
 ```js
 display(html`<div>
   ${warn ? html`<div class="warning" role="status">${warn}</div>` : ""}
-  ${solveNote ? html`<div class="note" role="status">${solveNote}</div>` : ""}
+  ${solveNote
+    ? html`<div class="note note-${solveNote.kind}" role="status">${solveNote.text}</div>`
+    : ""}
 </div>`);
 ```
 

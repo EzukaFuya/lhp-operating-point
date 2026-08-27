@@ -8,6 +8,7 @@
  */
 
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { describe, it } from 'node:test'
 import { buildOnce } from './build.mjs'
 
@@ -16,6 +17,7 @@ const { solve, solveOperatingPoint, pointList } = await import(out + '/model.mjs
 const props = await import(out + '/properties.mjs')
 const { CV, RNG, clampInput, DEF } = await import(out + '/constants.mjs')
 const { verdict, warning } = await import(out + '/verdict.mjs')
+const { MODEL_VERSION } = await import(out + '/exports.mjs')
 
 /** A coarse sweep of the whole valid input space. */
 function* sweep({ dt = 0.01, dq = 0.1, ds = 0.02 } = {}) {
@@ -89,19 +91,85 @@ describe('CC energy balance', () => {
     for (let q = RNG.q[0]; q <= RNG.q[1]; q += 0.1)
       for (let ts = RNG.tsink[0]; ts <= RNG.tsink[1]; ts += 0.05) {
         const op = solveOperatingPoint(q, ts)
-        if (!op.converged) continue
+        if (!op.energyConverged) continue
         converged++
         worst = Math.max(worst, Math.abs(op.solution.Rcc))
         assert.ok(op.tcc >= RNG.tcc[0] && op.tcc <= RNG.tcc[1], 'root left the allowed range')
       }
-    assert.ok(converged > 100, `only ${converged} operating points converged`)
+    assert.ok(converged > 100, `only ${converged} energy roots converged`)
     assert.ok(worst < 1e-6, `worst |Rcc| at a converged point = ${worst}`)
+  })
+
+  it('never calls an unreachable root a passive operating point', () => {
+    // An energy-balance root that dries the evaporator out is a root of the
+    // equations, not a state the loop can run in.
+    let checked = 0
+    let unreachableRoots = 0
+    for (let q = RNG.q[0]; q <= RNG.q[1]; q += 0.05)
+      for (let ts = RNG.tsink[0]; ts <= RNG.tsink[1]; ts += 0.02) {
+        const op = solveOperatingPoint(q, ts)
+        if (op.tcc === null) continue
+        checked++
+        assert.equal(
+          op.converged && op.solution.status !== 'closed',
+          false,
+          `converged at an unreachable root (${op.solution.status}) for Q*=${q}, Tsink=${ts}`,
+        )
+        assert.equal(op.converged, op.energyConverged && op.reachable)
+        if (op.energyConverged && !op.reachable) {
+          unreachableRoots++
+          assert.ok(op.note.length > 0, 'an unreachable root must say why')
+        }
+      }
+    assert.ok(checked > 500, `only ${checked} roots examined`)
+    // The case the review found must still be exercised by this sweep.
+    assert.ok(unreachableRoots > 0, 'the sweep no longer covers any unreachable root')
+  })
+
+  it('reports the bisection work it actually did', () => {
+    let checked = 0
+    for (let q = RNG.q[0]; q <= RNG.q[1]; q += 0.1)
+      for (let ts = RNG.tsink[0]; ts <= RNG.tsink[1]; ts += 0.05) {
+        const op = solveOperatingPoint(q, ts)
+        if (op.tcc === null) continue
+        checked++
+        assert.ok(op.iterations > 0, `a converged root reported ${op.iterations} steps`)
+      }
+    assert.ok(checked > 100)
+  })
+
+  it('the reviewed unreachable case is reported honestly', () => {
+    // Q* = 1.15, Tr,sink = 0.800 converged on a root with a capillary margin
+    // of -4.08% and was labelled a passive operating point.
+    const op = solveOperatingPoint(1.15, 0.8)
+    assert.equal(op.energyConverged, true)
+    assert.equal(op.reachable, false)
+    assert.equal(op.converged, false)
+    assert.equal(op.solution.status, 'capillary_exceeded')
+    assert.match(op.note, /not an operating point|rather than an operating point/)
+  })
+
+  it('prefers a reachable root when several exist', () => {
+    for (let q = RNG.q[0]; q <= RNG.q[1]; q += 0.05)
+      for (let ts = RNG.tsink[0]; ts <= RNG.tsink[1]; ts += 0.02) {
+        const op = solveOperatingPoint(q, ts)
+        if (op.tcc === null || op.reachable) continue
+        // The chosen root is unreachable, so no reachable root may exist
+        // anywhere else in range at this load and sink temperature.
+        const lo = Math.max(RNG.tcc[0], ts + 1e-3)
+        for (let t = lo; t <= RNG.tcc[1]; t += 0.001) {
+          const r = solve(t, q, ts)
+          if (Math.abs(r.Rcc) < 1e-9 && r.status === 'closed')
+            assert.fail(`missed a reachable root at T=${t} for Q*=${q}, Tsink=${ts}`)
+        }
+      }
   })
 
   it('reports honestly when no passive point exists in range', () => {
     // A sink hotter than the whole CC range cannot support any operating point.
     const op = solveOperatingPoint(1.0, RNG.tcc[1])
     assert.equal(op.converged, false)
+    assert.equal(op.energyConverged, false)
     assert.equal(op.tcc, null)
     assert.ok(op.note.length > 0, 'a failed search must say why')
   })
@@ -257,5 +325,21 @@ describe('inputs', () => {
       assert.ok(Math.abs(parseFloat(p.get('q')) - q) < 5e-3)
       assert.ok(Math.abs(parseFloat(p.get('tsink')) - ts) < 5e-4)
     }
+  })
+})
+
+describe('release metadata', () => {
+  it('the package, the citation and the exported model version agree', () => {
+    // An exported CSV is traceable only if its version string matches
+    // something a reader can find in the repository.
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    const cff = fs.readFileSync(new URL('../CITATION.cff', import.meta.url), 'utf8')
+    const cffVersion = /^version:\s*(.+)$/m.exec(cff)?.[1]?.trim()
+
+    assert.equal(cffVersion, pkg.version, 'CITATION.cff and package.json disagree')
+    assert.ok(
+      MODEL_VERSION.startsWith(pkg.version),
+      `MODEL_VERSION ${MODEL_VERSION} does not start with package version ${pkg.version}`,
+    )
   })
 })
