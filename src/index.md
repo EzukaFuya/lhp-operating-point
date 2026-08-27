@@ -4,7 +4,7 @@ toc: false
 ---
 
 ```js
-import {solve} from "./components/model/solve.js";
+import {solve, solveOperatingPoint} from "./components/model/solve.js";
 import {DEF, REF_TCC, RNG, PORE_RADIUS, CV, clampInput} from "./components/model/constants.js";
 import {verdict, warning} from "./components/verdict.js";
 import {readHash, writeHash} from "./components/url.js";
@@ -26,9 +26,26 @@ import {condBar} from "./components/charts/condBar.js";
     The CC is the only saturated volume in the loop, so its temperature fixes the pressure level
     everything else hangs from. Move the three inputs and watch where the cycle sits on the
     saturation curve, how much capillary head is left, and whether the returning liquid can carry
-    the parasitic heat leak away. All quantities are reduced (divided by their critical-point
-    values); the closure is a qualitative corresponding-states fit, not a design correlation.
+    the parasitic heat leak away.
   </p>
+  <p class="lede">
+    The page runs in two modes. <strong>Prescribed CC</strong> — the default — treats
+    <i>T</i><sub>r,cc</sub> as an input you set, and reports the CC energy-balance residual
+    <i>R</i><sub>cc</sub> left over: the heat a chamber held at that temperature would need
+    removing by other means. <strong>Solve passive point</strong> instead searches for the
+    <i>T</i><sub>r,cc</sub> where <i>R</i><sub>cc</sub> = 0, which is where a loop with no CC
+    heater or cooler actually settles.
+  </p>
+  <div class="caveat" role="note">
+    <span class="caveat-tag">Qualitative</span>
+    <span class="caveat-tag">Dimensionless</span>
+    <span class="caveat-tag">Not validated against experiment</span>
+    <span class="caveat-text">
+      A teaching model. The closure is a set of shape functions with the right trends, not a fit to
+      any real fluid, and no result here has been checked against test data or a high-fidelity
+      code. Trends are meaningful; absolute numbers are not. Do not use it for design.
+    </span>
+  </div>
 </div>
 
 ```js
@@ -59,7 +76,26 @@ function setInput(k, raw) {
 
 function resetInputs() {
   clamped.value = null;
+  solveNote.value = null;
   inputs.value = {...DEF};
+}
+
+// Set when the passive search says something the user needs to know.
+const solveNote = Mutable(null);
+
+// Search for the CC temperature at which the chamber balances on its own, and
+// move the slider there. Q* and the sink temperature are held fixed — they are
+// the boundary conditions the loop responds to.
+function solvePassive() {
+  const {q, tsink} = inputs.value;
+  const op = solveOperatingPoint(q, tsink);
+  if (!op.converged || op.tcc === null) {
+    solveNote.value = op.note || "The CC energy balance did not converge for this load and sink temperature.";
+    return;
+  }
+  clamped.value = null;
+  solveNote.value = `Passive operating point: T_r,cc = ${op.tcc.toFixed(4)} — found in ${op.iterations} bisection steps, |R_cc| = ${op.residual.toExponential(1)}.`;
+  inputs.value = {...inputs.value, tcc: op.tcc};
 }
 
 function setGhost(on) {
@@ -133,6 +169,9 @@ switchEl.onkeydown = (e) => {
   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchEl.onclick(); }
 };
 
+const solveBtn = html`<button type="button" class="btn-solve">Solve passive point</button>`;
+solveBtn.onclick = solvePassive;
+
 const resetBtn = html`<button type="button" class="btn-reset">Reset to default</button>`;
 resetBtn.onclick = resetInputs;
 
@@ -143,6 +182,7 @@ pngBtn.onclick = () => exportPng();
 
 display(html`<div class="toolbar">
   <div class="live"><span class="live-dot"></span>live — recomputed on every input</div>
+  ${solveBtn}
   ${switchEl}
   ${resetBtn}
   <div class="exports">
@@ -181,7 +221,10 @@ linkBtn.onclick = () => {
 ```
 
 ```js
-display(warn ? html`<div class="warning" role="status">${warn}</div>` : html`<span></span>`);
+display(html`<div>
+  ${warn ? html`<div class="warning" role="status">${warn}</div>` : ""}
+  ${solveNote ? html`<div class="note" role="status">${solveNote}</div>` : ""}
+</div>`);
 ```
 
 ```js
@@ -237,7 +280,7 @@ const active = sel.hi ?? sel.sel;
   <div>
     <h2>State points</h2>
     <p>Hover a row to preview it; click or press Enter to pin that point across every figure.</p>
-    <div id="slot-table"></div>
+    <div class="scroll-x"><div id="slot-table"></div></div>
   </div>
   <div>
     <h2>Pressure around the loop</h2>
@@ -296,6 +339,27 @@ fill("slot-legend", legend());
 <details class="relations">
 <summary>Governing relations and assumptions</summary>
 <div id="slot-eqs"></div>
+
+<h3 class="sublabel">What each quantity is scaled against</h3>
+
+<p class="closure">
+Temperature and pressure are genuinely reduced by their critical-point values. The interfacial and
+transport properties are <strong>not</strong> — dividing the latent heat or the surface tension by
+its critical value is meaningless, since both vanish there. They are normalised at a reference
+state instead, and every starred quantity equals one at that state.
+</p>
+
+<div class="constants">
+  <div class="constant"><span>T<sub>r</sub></span><span>T / T<sub>c</sub></span></div>
+  <div class="constant"><span>P<sub>r</sub></span><span>P / P<sub>c</sub></span></div>
+  <div class="constant"><span>reference state</span><span>T<sub>r,ref</sub> = 0.700</span></div>
+  <div class="constant"><span>h<sub>fg</sub>*</span><span>h<sub>fg</sub> / h<sub>fg</sub>(T<sub>r,ref</sub>)</span></div>
+  <div class="constant"><span>σ*</span><span>σ / σ(T<sub>r,ref</sub>)</span></div>
+  <div class="constant"><span>ρ<sub>l</sub>*, ρ<sub>v</sub>*</span><span>ρ / ρ(T<sub>r,ref</sub>)</span></div>
+  <div class="constant"><span>μ<sub>l</sub>*</span><span>μ<sub>l</sub> / μ<sub>l</sub>(T<sub>r,ref</sub>)</span></div>
+  <div class="constant"><span>Q*, R<sub>cc</sub></span><span>Q / (ṁ<sub>ref</sub> h<sub>fg,ref</sub>)</span></div>
+</div>
+
 <h3 class="sublabel">Model constants</h3>
 <div id="slot-constants"></div>
 
@@ -311,17 +375,26 @@ meaningful, absolute numbers are not.
 
 ```js
 // The closure, set as real mathematics rather than as marked-up text.
+// These are the relations as implemented. Where a dimensionless form differs
+// from the textbook physical one — the capillary limit especially — both are
+// shown, because quoting the physical form alone would misrepresent what the
+// code computes.
 const EQUATIONS = [
   [tex`\ln P_r = A\!\left(1 - \frac{1}{T_r}\right), \quad A = 7`, null],
   [tex`P_{7,8} = P_{\mathrm{sat}}(T_8)`, "the CC fixes the loop pressure level"],
   [tex`P_1 - P_9 = \Delta P_{GV} + \Delta P_{VL} + \Delta P_{COND} + \Delta P_{LL} + \Delta P_{WICK}`, null],
-  [tex`\Delta P_{\mathrm{cap}} \le \Delta P_{\mathrm{cap,max}} = \frac{2\sigma(T_8)}{r_p}`, null],
+  [tex`\Delta P_{r,\mathrm{cap}} \le \Delta P_{r,\mathrm{cap,max}} = C_a\,\frac{\sigma^{*}(T_8)}{r_p^{*}}, \quad C_a = 0.06`,
+   "as implemented — the dimensionless form of 2σcosθ/r_p, with C_a lumping the reference pressure, reference surface tension and pore geometry into one calibration constant. It is chosen to place the dry-out boundary in a useful part of the range, not measured."],
   [tex`T_1 = T_{\mathrm{sat}}(P_1), \quad T_1 - T_8 \approx \Delta P_{\mathrm{ext}}\left(\frac{dT}{dP}\right)_{\mathrm{sat}}`, null],
   [tex`\dot m = \frac{Q}{h_{fg}}, \quad \Delta P_v \propto \frac{\dot m}{\rho_v(T_8)}`, null],
-  [tex`Q = UA_{2\phi}\left(T_5 - T_{\mathrm{sink}}\right) \;\Rightarrow\; L_{2\phi}/L_c`, null],
-  [tex`Q_{\mathrm{leak}} = \dot m \, c_{p,l} \, \Delta T_{\mathrm{sub}}`, "CC energy balance"],
-  [tex`\Delta T_{\mathrm{sub,av}} = \left(T_5 - T_{\mathrm{sink}}\right)\left[1 - e^{-\mathrm{NTU}_{\mathrm{sub}}}\right]`, null],
-  [tex`h_{fg}^{*} = \theta^{0.38}, \;\; \sigma^{*} = \theta^{1.26}, \;\; \rho_l^{*} = \theta^{0.28}, \;\; \theta = \frac{1 - T_r}{0.3}`, null]
+  [tex`f = \frac{L_{2\phi}}{L_c} = \min\!\left(1, \frac{Q}{UA_{2\phi}\,(T_8 - T_{\mathrm{sink}})}\right)`,
+   "f < 1 is variable conductance; f = 1 is fixed conductance"],
+  [tex`\Delta T_{\mathrm{sub,av}} = \left(T_5 - T_{\mathrm{sink}}\right)\left[1 - e^{-\mathrm{NTU}_{\mathrm{sub}}}\right], \quad T_6 = T_5 - \Delta T_{\mathrm{sub,av}}`,
+   "the subcooler delivers what ε–NTU allows, and T₇ then picks up ambient heat along the liquid line"],
+  [tex`R_{cc} = Q_{\mathrm{leak}} - \dot m\, c_{p,l}\,(T_8 - T_7)`,
+   "CC energy-balance residual. Nothing is adjusted to force it to zero; R_cc = 0 defines the passive operating point"],
+  [tex`h_{fg}^{*} = \theta^{0.38}, \;\; \sigma^{*} = \theta^{1.26}, \;\; \rho_l^{*} = \theta^{0.28}, \;\; \theta = \frac{1 - T_r}{0.3}`,
+   "shape functions, normalised to 1 at T_r = 0.7 — see the reference quantities below"]
 ];
 
 fill("slot-eqs", html`<div class="eqs">

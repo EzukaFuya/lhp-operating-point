@@ -9,9 +9,58 @@ Built with [Observable Framework](https://observablehq.com/framework/) — the
 prose is Markdown, the inputs and figures are reactive cells in the same
 document, and the whole thing builds to a static site with no server.
 
-Everything is reduced — divided by its critical-point value — and the closure
-is a qualitative corresponding-states fit, not a design correlation. Trends
-are meaningful; absolute numbers are not.
+## Model status — read this first
+
+**This is a teaching model. It has not been validated against experiment or
+against a high-fidelity code, and it must not be used for design.**
+
+- **Dimensionless throughout.** Temperature and pressure are genuinely reduced
+  by their critical-point values. The interfacial and transport properties are
+  *not* — dividing the latent heat or the surface tension by its critical
+  value is meaningless, since both vanish there. They are normalised at a
+  reference state of `Tr,ref = 0.7`, where every starred quantity equals one.
+- **Qualitative closure.** `h_fg* = θ^0.38`, `σ* = θ^1.26` and the rest are
+  shape functions chosen to reproduce the right trends, not a fit to any real
+  fluid. The capillary coefficient `Ca = 0.06` lumps the reference pressure,
+  reference surface tension and pore geometry into one constant, chosen to put
+  the dry-out boundary in a useful part of the range. It is not measured.
+- **No experimental comparison.** There is no benchmark case in this
+  repository, so no error bar and no stated range of applicability.
+- **The T–s figure is a schematic state map.** State points come from the
+  solver, but the segments between them are straight lines: no quality
+  distribution and no enthalpy balance is solved along the two-phase legs.
+
+What the model *is* good for: seeing how the pieces trade off — how the CC
+temperature moves the whole pressure level, why the vapour-line loss explodes
+at low CC temperature, why subcooling and capillary head compete for the same
+condenser length.
+
+## Two modes
+
+The tool is explicit about the difference between a state you impose and a
+state the loop would reach on its own.
+
+- **Prescribed CC** (default) — `Tr,cc` is an input. The page reports the CC
+  energy-balance residual left over,
+  `Rcc = Q_leak − ṁ·c_p,l·(T₈ − T₇)`: the heat a chamber held at that
+  temperature would need removing by other means. Nothing in the solver is
+  adjusted to make that residual vanish.
+- **Solve passive point** — searches for the `Tr,cc` at which `Rcc = 0`, which
+  is where a loop with no CC heater or cooler actually settles. Bracket-scan
+  then bisection, because `Rcc` is only piecewise smooth. It reports when no
+  root exists in range rather than returning something plausible-looking.
+
+## Regimes
+
+Classified by condenser utilisation `f = L_2φ/L_c`, following the usual
+definition: while part of the condenser is still flooded the interface moves
+with the load and the conductance varies; once the two-phase front reaches the
+outlet there is no length left to recruit.
+
+| condition | regime |
+| --- | --- |
+| `f < 1` | variable conductance |
+| `f = 1` | fixed conductance |
 
 ## Running it
 
@@ -20,7 +69,27 @@ npm install
 npm run dev        # preview at http://127.0.0.1:3000
 npm run build      # static site into dist/
 npm run typecheck  # tsc over the model and figure modules
+npm test           # model invariants
 ```
+
+## Tests
+
+`npm test` runs `node --test` over the model, bundled to ESM by esbuild first.
+These are invariants, not snapshots — a snapshot would have locked in the
+energy-balance error these exist to catch:
+
+- `P₁ − P₉ = ΣΔP` across the whole input space, and pressure falls
+  monotonically around the loop
+- `Rcc` is exactly `Q_leak − ṁ·c_p,l·(T₈ − T₇)`, and no temperature is clamped
+  to force it towards zero
+- the passive solver drives `|Rcc|` below 1e-6 wherever a root is bracketed,
+  and says so when none exists
+- the regime follows `f`, and `f` saturates at exactly 1
+- the saturation dome closes exactly at the critical point, and every starred
+  property is 1 at `Tr = 0.7`
+- a state that cannot close is never reported as closed, always warns, and its
+  status card, banner and figure watermark agree
+- every output is finite everywhere in range
 
 ### Building without jsDelivr
 
@@ -45,7 +114,8 @@ shown as a verdict first and figures second:
 
 1. purpose and caveat
 2. the three inputs (slider and direct number entry, both keyboard-reachable)
-3. **verdict cards** — capillary margin, subcooling margin, regime, status
+3. **verdict cards** — capillary margin, subcooling margin, regime, status,
+   and the CC energy-balance residual
 4. the loop schematic, with the nine states in their physical positions
 5. the main P–T figure, axes magnified about the operating point
 6. state-point table and the pressure profile around the loop
@@ -85,7 +155,7 @@ src/
     model/        the physics — framework-agnostic and separately testable
       constants.ts    A, the closure coefficients, ranges, palette
       properties.ts   reduced properties as functions of T_r
-      solve.ts        one pass around the loop; the nine state points
+      solve.ts        one pass around the loop; the passive root-find
     charts/       SVG figures
       dom.ts          a createElement-shaped helper that builds real DOM
       primitives.ts   scales, frame, de-collision, label stacking, markers
@@ -102,6 +172,9 @@ src/
     exports.ts    CSV, PNG and copy-link
 scripts/
   vendor-npm.mjs  populates Framework's npm cache from the registry
+test/
+  build.mjs       bundles the model to ESM for the test runner
+  model.test.mjs  the invariants above
 ```
 
 The figures build SVG through a helper shaped like `React.createElement`, so
@@ -126,7 +199,13 @@ workflow for the day the site grows a second page and needs absolute links.
 This is a port of a design prototype, kept in `project/`:
 `LHP動作点解析 v2.dc.html` and the `support.js` runtime that renders it.
 
-The port was checked against that prototype rather than eyeballed:
+The port was checked against that prototype figure by figure. Note that the
+*model* has since diverged from the prototype deliberately: the prototype
+forced `T₇` to keep the CC energy balance looking closed, misnamed the
+conductance regimes, and stated a scaling it did not use. Those are fixed here,
+so state-point values no longer match the prototype — by design.
+
+The original port fidelity, for the record:
 
 - the solver matches exactly — every field, over a grid of 36,639 operating
   points spanning the full input ranges;

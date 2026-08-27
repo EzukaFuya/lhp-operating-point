@@ -30,5 +30,9 @@ export default {
   `,
 
   footer: '',
-  cleanUrls: true,
+
+  // Serve /index.html as / without a trailing .html on links.
+  // (Replaces the deprecated `cleanUrls: true`.)
+  preserveIndex: false,
+  preserveExtension: false,
 }

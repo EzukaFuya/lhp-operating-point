@@ -16,23 +16,65 @@ function save(name: string, mime: string, data: string | Blob): void {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000)
 }
 
-/** Every state point plus the pressure and subcooling budgets. */
+/**
+ * Version of the model the numbers came from. Bump this whenever the closure
+ * or the solver changes, so an exported file can be traced to what produced
+ * it.
+ */
+export const MODEL_VERSION = '2.1.0-qualitative'
+
+/**
+ * Every state point plus the pressure and subcooling budgets.
+ *
+ * The header carries the status and the CC energy residual, so a file can
+ * never be read as a converged operating point when it is not one. Values
+ * that are not physical states are written empty rather than as the clamped
+ * numbers the figures use for drawing.
+ */
 export function exportCsv(inputs: Inputs, r: Solution): void {
   const P = pointList(r)
+  const nonPhysical = r.status === 'nonphysical'
+
   const rows: Array<Array<string | number>> = [
-    ['# LHP reduced-property model'],
+    ['# LHP qualitative corresponding-states model'],
+    ['# model_version', MODEL_VERSION],
+    ['# generated', new Date().toISOString()],
+    ['# mode', 'prescribed CC temperature'],
+    ['# NOTE', '"dimensionless; qualitative closure; not validated against experiment"'],
+    [],
     ['# Tr_cc', inputs.tcc.toFixed(4)],
     ['# Q*', inputs.q.toFixed(3)],
     ['# Tr_sink', inputs.tsink.toFixed(4)],
     [],
+    ['# status', r.status],
+    ['# cc_energy_residual_Rcc', r.Rcc.toFixed(6)],
+    ['# passive_operating_point', Math.abs(r.Rcc) < 1e-6 ? 'yes' : 'no'],
+    [],
     ['point', 'state', 'Tr', 'Pr', 's*'],
   ]
-  P.forEach((p) =>
-    rows.push([p.id, '"' + p.name + '"', p.t.toFixed(5), p.p.toFixed(6), p.s.toFixed(4)]),
-  )
+
+  P.forEach((p) => {
+    // The figures draw point 9 at a floored pressure so they stay legible.
+    // Exporting that as if it were a state would be fabricating data, so the
+    // physical value is written instead — and nothing at all once there is
+    // no physical value to write.
+    if (p.id === '9') {
+      rows.push([
+        p.id,
+        '"' + p.name + '"',
+        nonPhysical ? '' : p.t.toFixed(5),
+        nonPhysical ? '' : r.P9raw.toFixed(6),
+        nonPhysical ? '' : p.s.toFixed(4),
+      ])
+      return
+    }
+    rows.push([p.id, '"' + p.name + '"', p.t.toFixed(5), p.p.toFixed(6), p.s.toFixed(4)])
+  })
+
   rows.push(
     [],
     ['quantity', 'value'],
+    ['status', r.status],
     ['dPr_dTr', r.dpdt.toFixed(4)],
     ['rho_v*', r.rv.toFixed(4)],
     ['h_fg*', r.hfg.toFixed(4)],
@@ -46,10 +88,21 @@ export function exportCsv(inputs: Inputs, r: Solution): void {
     ['dP_cap_max', r.dpMax.toFixed(6)],
     ['capillary_margin', r.capM.toFixed(4)],
     ['L2phi_over_Lc', r.f.toFixed(4)],
+    ['regime', r.f >= 1 ? 'fixed_conductance' : 'variable_conductance'],
     ['dT_sub_required', r.subReq.toFixed(5)],
     ['dT_sub_available', r.subAv.toFixed(5)],
+    ['dT_sub_delivered', r.sub.toFixed(5)],
     ['subcooling_margin', r.subM.toFixed(4)],
+    ['Q_leak*', r.qleak.toFixed(6)],
+    ['Q_carried_by_liquid*', r.carried.toFixed(6)],
+    ['cc_energy_residual_Rcc', r.Rcc.toFixed(6)],
+    // Both are reported: the raw value says why the state is impossible, the
+    // plotted one says what the figures actually drew.
+    ['P9_physical', r.P9raw.toFixed(6)],
+    ['P9_plotted', r.plotClamped ? r.P9.toFixed(6) : ''],
+    ['P9_plot_clamped', r.plotClamped ? 'yes' : 'no'],
   )
+
   save('lhp-operating-point.csv', 'text/csv', rows.map((x) => x.join(',')).join('\n'))
 }
 

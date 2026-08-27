@@ -1,14 +1,38 @@
 /**
- * The loop solver. Given the CC temperature, the heat load and the sink
- * temperature it walks the loop once — meniscus, grooves, vapour line,
- * condenser, liquid line, back through the wick — and returns every state
- * point plus the capillary and subcooling budgets.
+ * The loop solver.
  *
- * Ported verbatim from the design prototype; the numbers are qualitative.
+ * `solve` is a *prescribed-CC* calculation: given the CC temperature it walks
+ * the loop once — meniscus, grooves, vapour line, condenser, liquid line, back
+ * through the wick — and reports the state points, the two budgets, and the CC
+ * energy-balance residual `Rcc` left over. It does not adjust anything to make
+ * that residual vanish.
+ *
+ * `solveOperatingPoint` is the passive calculation: it searches for the CC
+ * temperature at which `Rcc` is zero, which is where a loop with no CC heater
+ * or cooler actually settles.
+ *
+ * The closure is qualitative — see `properties.ts` for what the starred
+ * quantities are normalised against, and the README for validation status.
  */
 
-import { CV, PORE_RADIUS } from './constants.js'
+import { CV, PORE_RADIUS, RNG } from './constants.js'
 import { dpdt, hfg, mul, pr, rhol, rhov, sig, sl, ssh, sv, trs } from './properties.js'
+
+/**
+ * Whether a solution is a state the hardware could actually reach.
+ *
+ * - `closed` — the pressure and subcooling budgets both balance.
+ * - `capillary_exceeded` — ΔP_cap has passed the maximum the meniscus can
+ *   hold; the evaporator dries out.
+ * - `subcooling_starved` — the returning liquid cannot absorb the heat leak.
+ * - `nonphysical` — the wick loss exceeds the whole CC pressure, so P₉ would
+ *   be negative. The state points are a formal extrapolation only.
+ */
+export type SolutionStatus =
+  | 'closed'
+  | 'capillary_exceeded'
+  | 'subcooling_starved'
+  | 'nonphysical'
 
 export interface Solution {
   // inputs
@@ -25,6 +49,7 @@ export interface Solution {
   P3: number
   P2: number
   P1: number
+  /** Floored copy of P9 used for drawing only; see `P9raw` for the physics. */
   P9: number
 
   // temperatures around the loop
@@ -56,14 +81,35 @@ export interface Solution {
   dpMax: number
 
   // subcooling budget
+  /** Subcooling the CC energy balance needs the returning liquid to carry. */
   subReq: number
+  /** Subcooling the subcooler length can deliver, by effectiveness–NTU. */
   subAv: number
+  /** Subcooling actually delivered at the condenser exit, T5 − T6. */
   sub: number
+  /** Heat leaking into the CC, through the wick and from ambient. */
   qleak: number
+  /** Heat the returning liquid actually removes from the CC. */
+  carried: number
+  /**
+   * CC energy-balance residual, `qleak − carried`: the net heat that must be
+   * removed from the CC by other means to hold it at this temperature.
+   * Positive means active cooling is required, negative means active heating.
+   * Rcc = 0 is the passive operating point.
+   */
+  Rcc: number
+  /** Whether this is a state the hardware could reach, and if not, why not. */
+  status: SolutionStatus
 
   dpdt: number
-  /** Unclamped P9; negative when the wick loss exceeds the CC pressure. */
+  /**
+   * The physical P9. Every pressure identity holds against this value:
+   * P1 − P9raw = ΔP_GV + ΔP_VL + ΔP_COND + ΔP_LL + ΔP_WICK. Negative when the
+   * wick loss exceeds the whole CC pressure.
+   */
   P9raw: number
+  /** True when the drawn P9 had to be floored away from the physical one. */
+  plotClamped: boolean
   /** True when P9 would be non-positive, i.e. point 9 is not a real state. */
   nonphys: boolean
   /** Capillary margin, 1 − ΔP_cap/ΔP_cap,max. */
@@ -76,7 +122,9 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
   const K = CV
   const P78 = pr(t8)
   const hfgV = hfg(t8)
-  const mdot = q / hfgV
+  // h_fg vanishes at the critical point; the input range stops well short of
+  // it, but the guard keeps the mass flow finite for any caller.
+  const mdot = q / Math.max(1e-9, hfgV)
   const rv = rhov(t8)
   const rl = rhol(t8)
   const mu = mul(t8)
@@ -101,9 +149,13 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
   const P2 = P3 + dpVL
   const P1 = P2 + dpGV
 
+  // P9raw is the physical value and the one every budget identity uses. P9 is
+  // a floored copy that exists only so the figures stay legible when the wick
+  // loss approaches the whole CC pressure; `plotClamped` says when they differ.
   const P9raw = P78 - dpWK
   const nonphys = P9raw <= 0
   const P9 = Math.max(P78 * 0.05, P9raw)
+  const plotClamped = P9 !== P9raw
 
   const T1 = trs(P1)
   const sup = q / K.Ge
@@ -114,15 +166,41 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
   const T4 = trs(P4)
   const T5 = trs(P5)
 
-  // CC energy balance: the returning liquid has to absorb the heat leak.
+  // Heat leaking into the CC: back through the wick from the evaporator, and
+  // from ambient across the CC wall.
   const qleak = K.Gw * (T1 + sup - t8) + K.Ga * Math.max(0, K.tamb - t8)
+
+  // The subcooling the CC balance would need the returning liquid to carry.
   const subReq = qleak / Math.max(1e-6, mdot * K.cpl)
+
+  // What the subcooler length can actually deliver, by effectiveness–NTU.
   const ntu = (K.Ks * (1 - f)) / Math.max(1e-6, mdot)
   const subAv = Math.max(0, T5 - tsink) * (1 - Math.exp(-ntu))
-  const sub = Math.min(subReq, subAv)
 
+  // Walk the liquid forward from the condenser rather than assuming the CC
+  // balance closes. T6 is what the subcooler delivers; the liquid line then
+  // picks up ambient heat on the way back. Neither is adjusted to make the
+  // balance work out — the shortfall is reported instead, as `Rcc`.
+  const sub = subAv
   const T6 = T5 - sub
-  const T7 = Math.min(t8 - 0.002, T6 + 0.15 * Math.max(0, K.tamb - T6))
+  const T7 = T6 + K.Gll * Math.max(0, K.tamb - T6)
+
+  // CC energy balance. `carried` is the heat the returning liquid actually
+  // removes; `Rcc` is what is left over and must be taken out of the CC by
+  // some other means to hold it at t8. Rcc = 0 is the passive operating
+  // point — see `solveOperatingPoint`.
+  const carried = mdot * K.cpl * (t8 - T7)
+  const Rcc = qleak - carried
+
+  const dryout = dpCap >= dpMax
+  const starved = subReq > subAv
+  const status: SolutionStatus = nonphys
+    ? 'nonphysical'
+    : dryout
+      ? 'capillary_exceeded'
+      : starved
+        ? 'subcooling_starved'
+        : 'closed'
 
   return {
     t8,
@@ -162,11 +240,130 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
     subAv,
     sub,
     qleak,
+    carried,
+    Rcc,
+    status,
     dpdt: dpdt(t8),
     P9raw,
+    plotClamped,
     nonphys,
     capM: 1 - dpCap / dpMax,
     subM: subAv > 0 ? 1 - subReq / subAv : -1,
+  }
+}
+
+/** Outcome of searching for the CC temperature a passive loop settles at. */
+export interface OperatingPoint {
+  /** True when a temperature satisfying Rcc = 0 was bracketed and converged. */
+  converged: boolean
+  /** The CC temperature found, or null when none exists in range. */
+  tcc: number | null
+  /** The solution there, or null. */
+  solution: Solution | null
+  /** |Rcc| at the returned point. */
+  residual: number
+  /** Bisection steps taken. */
+  iterations: number
+  /** Why the search failed, when it did. */
+  note: string
+}
+
+/**
+ * Find the CC temperature a passive loop settles at for a given load and sink
+ * temperature — the temperature at which the CC energy balance closes on its
+ * own, Rcc(T_cc) = 0, with no heater or cooler on the compensation chamber.
+ *
+ * Rcc is not guaranteed monotonic in T_cc across the whole range, so the range
+ * is scanned for a sign change first and the first bracket found is bisected.
+ * Bisection rather than a secant method because Rcc is only piecewise smooth —
+ * `f` saturates at 1 and several terms clamp at zero.
+ */
+export function solveOperatingPoint(
+  q: number,
+  tsink: number,
+  rp = PORE_RADIUS,
+  range: readonly [number, number] = RNG.tcc,
+): OperatingPoint {
+  const residualAt = (t: number) => solve(t, q, tsink, rp).Rcc
+
+  // The sink temperature is a hard floor: below it the condenser cannot
+  // reject heat and the model is meaningless.
+  const lo = Math.max(range[0], tsink + 1e-3)
+  const hi = range[1]
+  if (!(hi > lo))
+    return {
+      converged: false,
+      tcc: null,
+      solution: null,
+      residual: NaN,
+      iterations: 0,
+      note: 'The sink temperature leaves no CC temperature range to search.',
+    }
+
+  const STEPS = 96
+  let aT = lo
+  let aR = residualAt(aT)
+  let bracket: [number, number, number, number] | null = null
+
+  for (let i = 1; i <= STEPS; i++) {
+    const bT = lo + ((hi - lo) * i) / STEPS
+    const bR = residualAt(bT)
+    if (Number.isFinite(aR) && Number.isFinite(bR) && aR === 0) {
+      bracket = [aT, aT, aR, aR]
+      break
+    }
+    if (Number.isFinite(aR) && Number.isFinite(bR) && aR * bR < 0) {
+      bracket = [aT, bT, aR, bR]
+      break
+    }
+    aT = bT
+    aR = bR
+  }
+
+  if (!bracket)
+    return {
+      converged: false,
+      tcc: null,
+      solution: null,
+      residual: NaN,
+      iterations: STEPS,
+      note:
+        'The CC energy balance does not change sign anywhere in ' +
+        `T_r,cc ∈ [${lo.toFixed(3)}, ${hi.toFixed(3)}], so this load and sink ` +
+        'temperature admit no passive operating point in range.',
+    }
+
+  let [x0, x1, r0] = bracket
+  const TOL = 1e-10
+  const MAX = 80
+  let iterations = 0
+
+  while (iterations < MAX && x1 - x0 > 1e-12) {
+    const mid = 0.5 * (x0 + x1)
+    const rm = residualAt(mid)
+    iterations++
+    if (rm === 0 || Math.abs(rm) < TOL) {
+      x0 = mid
+      x1 = mid
+      break
+    }
+    if (r0 * rm < 0) {
+      x1 = mid
+    } else {
+      x0 = mid
+      r0 = rm
+    }
+  }
+
+  const tcc = 0.5 * (x0 + x1)
+  const solution = solve(tcc, q, tsink, rp)
+  return {
+    converged: Math.abs(solution.Rcc) < 1e-6,
+    tcc,
+    solution,
+    residual: Math.abs(solution.Rcc),
+    iterations,
+    note: '',
   }
 }
 

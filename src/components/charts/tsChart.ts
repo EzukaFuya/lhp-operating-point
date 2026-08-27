@@ -2,6 +2,11 @@
  * The cycle on the T–s plane, inside the saturation dome. Raising the CC
  * temperature lifts the cycle and narrows it: the latent heat falls, so the
  * 9→1 crossing of the dome gets shorter.
+ *
+ * This is a schematic state map, not a computed process path. The state
+ * points are placed from the solver, but the segments between them are drawn
+ * straight: the two-phase legs carry no quality distribution and no enthalpy
+ * balance is solved along them. Read the endpoints, not the paths.
  */
 
 import { COL } from '../model/constants.js'
@@ -141,8 +146,25 @@ export function tsChart(r: Solution, g: Solution | null, hi: string | null): SVG
     ),
   )
 
+  c.push(
+    h(
+      'text',
+      {
+        x: o.ml + 6,
+        y: o.mt + 14,
+        fill: COL.faint,
+        fontSize: 11,
+        fontFamily: 'IBM Plex Mono, monospace',
+      },
+      'schematic — endpoints only',
+    ),
+  )
+
   return figure(
-    { viewBox: '0 0 ' + o.w + ' ' + o.h, label: 'Temperature-entropy diagram of the cycle' },
+    {
+      viewBox: '0 0 ' + o.w + ' ' + o.h,
+      label: 'Schematic temperature-entropy state map of the cycle',
+    },
     c,
   )
 }

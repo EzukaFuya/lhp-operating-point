@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: Loop heat pipe operating point — an interactive qualitative study model
+message: >-
+  This is a teaching model with a qualitative closure. It has not been
+  validated against experiment or against a high-fidelity code. Please cite it
+  as a pedagogical tool, and do not cite its numbers as physical results.
+type: software
+authors:
+  - alias: EzukaFuya
+repository-code: 'https://github.com/EzukaFuya/lhp-operating-point'
+url: 'https://ezukafuya.github.io/lhp-operating-point/'
+abstract: >-
+  An interactive study model of a loop heat pipe, showing how the compensation
+  chamber temperature sets the pressure level of the loop, how much capillary
+  head remains, and whether the returning liquid can absorb the parasitic heat
+  leak. It runs in two modes: a prescribed-CC calculation that reports the CC
+  energy-balance residual left over, and a passive calculation that solves for
+  the CC temperature at which that residual vanishes. All quantities are
+  dimensionless; temperature and pressure are reduced by their critical-point
+  values, and the interfacial and transport properties are normalised at a
+  reference state of Tr = 0.7. The property closure is a set of shape
+  functions chosen for qualitative trend fidelity, not a fit to any fluid.
+keywords:
+  - loop heat pipe
+  - compensation chamber
+  - two-phase thermal control
+  - capillary limit
+  - educational software
+license: MIT
+version: 2.1.0
+date-released: '2026-08-28'

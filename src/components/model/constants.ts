@@ -31,6 +31,8 @@ export const CV = {
   Gw: 1.2,
   /** Ambient heat-leak conductance G*. */
   Ga: 0.4,
+  /** Fraction of the liquid line's approach to ambient, on the way back. */
+  Gll: 0.15,
   /** Ambient reduced temperature. */
   tamb: 0.75,
   /** Reduced liquid specific heat. */

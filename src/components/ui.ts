@@ -91,6 +91,20 @@ export function resultCards(r: Solution, v: Verdict): HTMLElement {
   status.append(el('div', 'card-label', 'Status'), statusTitle, el('div', 'card-body', v.statusBody))
   wrap.append(status)
 
+  // The CC energy balance. This is the card that says whether the prescribed
+  // temperature is one the chamber would actually hold on its own.
+  const cc = el('div', 'card')
+  cc.style.setProperty('--card-accent', v.RccColor)
+  const ccHead = el('div', 'card-head')
+  ccHead.append(
+    el('span', 'card-label', 'CC balance  R_cc'),
+    el('span', 'card-tag', v.RccLabel),
+  )
+  const ccValue = el('div', 'card-value', v.RccS)
+  ccValue.style.color = v.RccColor
+  cc.append(ccHead, ccValue, el('div', 'card-formula', v.RccNote))
+  wrap.append(cc)
+
   return wrap
 }
 
@@ -130,8 +144,10 @@ export function statePointTable(r: Solution, active: string | null, pinned: stri
     if (construction) name.innerHTML = 'Saturation state at P<sub>2</sub>'
     else name.textContent = p.name
 
-    // Point 9 has no physical pressure once ΔP_WICK exceeds the CC pressure.
-    const press = p.id === '9' && r.nonphys ? 'n/a' : p.p.toFixed(4)
+    // The figures draw point 9 at a floored pressure so they stay legible;
+    // the table reports the physical value, and n/a once there isn't one.
+    const press =
+      p.id === '9' ? (r.nonphys ? 'n/a' : r.P9raw.toFixed(4)) : p.p.toFixed(4)
 
     row.append(
       id,

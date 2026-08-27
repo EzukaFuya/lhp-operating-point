@@ -10,13 +10,14 @@
     "vendor": "node scripts/vendor-npm.mjs",
     "build:offline": "npm run vendor && observable build",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist src/.observablehq/cache"
+    "clean": "rm -rf dist src/.observablehq/cache",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@observablehq/framework": "^1.13.4"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.25.10",
     "typescript": "^5.7.2"
   },
   "engines": {

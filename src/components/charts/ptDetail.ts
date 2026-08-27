@@ -106,7 +106,7 @@ export function ptDetail(r: Solution, hi: string | null): SVGSVGElement {
         fontFamily: 'Source Serif 4, serif',
         fontStyle: 'italic',
       },
-      '(dP/dT) saturation curve',
+      'P_sat(T) saturation curve',
     ),
   )
 
@@ -327,6 +327,35 @@ export function ptDetail(r: Solution, hi: string | null): SVGSVGElement {
       'ΔP cap = P₁ − P₉ = ' + r.dpCap.toFixed(4),
     ),
   )
+
+  // A state the hardware cannot reach still gets drawn — the shape of the
+  // formal solution is instructive — but it is marked as such, so the figure
+  // is never mistaken for a reachable operating point.
+  if (r.status !== 'closed') {
+    const why =
+      r.status === 'nonphysical'
+        ? 'NON-PHYSICAL — P₉ < 0'
+        : r.status === 'capillary_exceeded'
+          ? 'FORMAL EXTRAPOLATION — capillary limit exceeded'
+          : 'FORMAL EXTRAPOLATION — subcooling starved'
+    c.push(
+      h(
+        'text',
+        {
+          x: (o.ml + o.w - o.mr) / 2,
+          y: (o.mt + o.h - o.mb) / 2,
+          textAnchor: 'middle',
+          fill: '#b8442f',
+          fillOpacity: 0.16,
+          fontSize: 44,
+          fontWeight: 600,
+          fontFamily: 'IBM Plex Mono, monospace',
+          style: { pointerEvents: 'none' },
+        },
+        why,
+      ),
+    )
+  }
 
   // --- nodes, labels, hit targets ---
   const nl: LabelNode[] = P.map((pt) => ({

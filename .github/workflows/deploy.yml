@@ -29,8 +29,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Test
+        run: npm test
+
+      # Builds through the vendoring path, which installs Framework's own npm
+      # dependencies at pinned versions from the registry. The plain `build`
+      # resolves them as `@latest` from a CDN, so the same commit could
+      # produce different output on different days.
       - name: Build
-        run: npm run build
+        run: npm run build:offline
         env:
           OBSERVABLE_TELEMETRY_DISABLE: 'true'
           # A single page emits relative asset paths, so this is only needed

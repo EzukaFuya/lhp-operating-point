@@ -1,7 +1,20 @@
 /**
- * Reduced fluid properties. A corresponding-states closure in the reduced
- * temperature Tr = T/Tc, with θ = (1 − Tr)/0.3 as the distance from the
- * critical point. Ported verbatim from the design prototype.
+ * Fluid properties for the qualitative corresponding-states closure.
+ *
+ * Temperature and pressure are genuinely reduced — Tr = T/Tc, Pr = P/Pc — but
+ * the transport and interfacial properties are NOT divided by critical-point
+ * values, which would be meaningless: the latent heat and the surface tension
+ * both vanish at the critical point. They are instead normalised at the
+ * reference state Tr,ref = 0.7, where every starred quantity equals one:
+ *
+ *   h_fg* = h_fg / h_fg(0.7)      σ*    = σ / σ(0.7)
+ *   ρ_l*  = ρ_l / ρ_l(0.7)        μ_l*  = μ_l / μ_l(0.7)
+ *   ρ_v*  = ρ_v / ρ_v(0.7)
+ *
+ * with θ = (1 − Tr)/0.3, so θ = 1 at that reference state.
+ *
+ * These are shape functions chosen to reproduce the right qualitative trends,
+ * not a fit to any real fluid. See README for the model's validation status.
  */
 
 import { A, CV } from './constants.js'
@@ -15,8 +28,13 @@ export const trs = (p: number): number => 1 / (1 - Math.log(Math.max(1e-12, p)) 
 /** Slope of the saturation curve, (dPr/dTr)_sat. */
 export const dpdt = (tr: number): number => (pr(tr) * A) / (tr * tr)
 
-/** Reduced distance from the critical point. */
-export const th = (tr: number): number => Math.max(1e-4, (1 - tr) / 0.3)
+/**
+ * Distance from the critical point, scaled so that θ = 1 at the reference
+ * state Tr = 0.7. It reaches exactly zero at Tr = 1, which is what closes the
+ * saturation dome there; callers that divide by a θ-derived quantity guard
+ * against zero themselves.
+ */
+export const th = (tr: number): number => Math.max(0, (1 - tr) / 0.3)
 
 /** Reduced latent heat, h_fg* = θ^0.38. */
 export const hfg = (tr: number): number => Math.pow(th(tr), 0.38)

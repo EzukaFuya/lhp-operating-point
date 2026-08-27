@@ -6,3 +6,4 @@ src/.observablehq/cache/
 *.local
 .DS_Store
 dist-single/
+test/.build/

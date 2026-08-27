@@ -371,6 +371,45 @@ button {
   background: var(--wash);
 }
 
+/* ------------------------------------------------- standing model caveat */
+
+/*
+ * The scope of the model, stated where the results are read rather than
+ * buried in the collapsed assumptions at the foot of the page.
+ */
+.caveat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 10px;
+  margin-top: 14px;
+  padding: 10px 13px;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--quiet);
+  background: var(--wash);
+}
+
+.caveat-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--surface);
+  background: var(--quiet);
+  padding: 3px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.caveat-text {
+  flex: 1;
+  min-width: 260px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--mid);
+  text-wrap: pretty;
+}
+
 /* ----------------------------------------------------------------- warning */
 
 .warning {
@@ -382,6 +421,34 @@ button {
   font-size: 12px;
   color: #8f2f1e;
   line-height: 1.6;
+}
+
+/* Outcome of the passive search — informational, not a failure. */
+.note {
+  margin-top: 16px;
+  border: 1px solid #9db3a8;
+  background: #eef5f1;
+  padding: 11px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #1d5945;
+  line-height: 1.6;
+}
+
+/* The one action that changes what the page is showing, so it reads as the
+   primary control rather than as another text button. */
+.btn-solve {
+  font-size: 12.5px;
+  padding: 9px 15px;
+  min-height: 40px;
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn-solve:hover {
+  background: #1f1d19;
+  border-color: #1f1d19;
 }
 
 /* ------------------------------------------------------------------- cards */
@@ -498,6 +565,16 @@ button {
   padding-top: 36px;
 }
 
+/*
+ * A grid item's default `min-width: auto` is its content's min-content width,
+ * so a wide table or figure pushes the whole column — and the page — wider
+ * than the viewport. Every grid child is allowed to shrink instead, and the
+ * wide content scrolls inside its own container.
+ */
+.grid-2 > * {
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .grid-2 {
     grid-template-columns: 1fr;
@@ -597,6 +674,9 @@ button {
 
 table.states {
   width: 100%;
+  /* The state names set a wide min-content width; on a narrow screen the
+     table scrolls inside its own container rather than widening the page. */
+  min-width: 420px;
   border-collapse: collapse;
   font-family: var(--mono);
   font-size: 12px;
