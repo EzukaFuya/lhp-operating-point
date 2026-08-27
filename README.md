@@ -1,25 +1,105 @@
-# CODING AGENTS: READ THIS FIRST
+# Loop heat pipe — operating point study model
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+An interactive teaching model of a loop heat pipe (LHP): how the compensation
+chamber temperature sets the pressure level of the whole loop, how much
+capillary head is left, and whether the returning liquid can carry the
+parasitic heat leak away.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+Everything is reduced — divided by its critical-point value — and the closure
+is a qualitative corresponding-states fit, not a design correlation. Trends
+are meaningful; absolute numbers are not.
 
-## What you should do — IMPORTANT
+## Running it
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+```bash
+npm install
+npm run dev        # dev server
+npm run build      # typecheck + production build to dist/
+npm run typecheck  # tsc only
+```
 
-**Read `project/LHP動作点解析 v2.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+Two extra builds exist for distribution:
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+```bash
+npm run build:single    # one self-contained dist-single/index.html
+npm run build:artifact   # the same, stripped for embedding as a page fragment
+```
 
-## About the design files
+## What the page does
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+Three reduced inputs — CC temperature `T_r,cc`, heat load `Q*` and sink
+temperature `T_r,sink` — drive one solver pass around the loop. The result is
+shown as a verdict first and figures second:
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+1. purpose and caveat
+2. the three inputs (slider and direct number entry, both keyboard-reachable)
+3. **verdict cards** — capillary margin, subcooling margin, regime, status
+4. the loop schematic, with the nine states in their physical positions
+5. the main P–T figure, axes magnified about the operating point
+6. state-point table and the pressure profile around the loop
+7. the T–s plane and the condenser interface position
+8. governing relations and assumptions, collapsed by default
 
-## Bundle contents
+One selection runs through everything. Hovering a state point — in any
+figure or in the table — previews it; clicking, tapping or tabbing to it and
+pressing Enter pins it. The pinned point stays highlighted in every figure
+and is described in the bar under the main diagram.
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `LoopHeatPipe動作点解析UI` project files (HTML prototypes, assets, components)
+The operating point is kept in the URL hash, so a calculation can be linked.
+`Copy link`, `CSV` and `Chart PNG` are in the share/export group.
+
+### Accessibility
+
+The three branches are coded three ways over, so hue is never load-bearing:
+
+| branch | colour | line | marker |
+| --- | --- | --- | --- |
+| liquid through the wick 8→9 | magenta | dash-dot | diamond |
+| meniscus 9→1, then vapour 1→4 | red | solid | circle |
+| condensate and liquid line 4→8 | blue | dashed | square |
+
+State points in the main figure are focusable, the table rows are focusable,
+and every label is placed by a shared routine that de-collides labels and
+clamps them inside the plot frame, so nothing overlaps however the states
+converge.
+
+## Layout
+
+```
+src/
+  model/        the physics — constants, property closures, the solver
+    constants.ts    A, the closure coefficients, ranges, palette
+    properties.ts   reduced properties as functions of T_r
+    solve.ts        one pass around the loop; the nine state points
+  charts/       SVG figures
+    primitives.tsx  scales, frame, de-collision, label stacking, markers
+    Schematic.tsx   the loop layout
+    PtDetail.tsx    the main P–T figure
+    PtGlobal.tsx    the whole P–T plane, log pressure
+    TsChart.tsx     the T–s plane
+    ProfChart.tsx   pressure around the loop
+    CondBar.tsx     the condenser two-phase / subcooled split
+  components/   inputs, verdict cards, state table, governing relations
+  lib/          verdict text, URL hash state, CSV / PNG / copy-link
+  App.tsx       page composition and the shared selection
+```
+
+## Provenance
+
+This is a port of a Claude Design prototype. The original bundle is kept in
+place: `HANDOFF.md`, the design sources in `project/` (`LHP動作点解析 v2.dc.html`
+and the `support.js` runtime), and the conversation that produced them in
+`chats/`.
+
+The port was checked against the prototype rather than eyeballed:
+
+- the solver matches the prototype exactly — every field, over a grid of
+  36,639 operating points spanning the full input ranges;
+- every drawing operation of all six figures is identical at the default
+  point and at the dryout, subcooling-starved, non-physical-`P₉`,
+  inverted-sink and low-margin corners;
+- hover and pin highlighting, table row states and the selection bar text
+  match the prototype step for step.
+
+`project/LHP CC温度と線図.dc.html` is the earlier v1 prototype and was not
+ported.
