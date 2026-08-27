@@ -123,12 +123,10 @@ workflow for the day the site grows a second page and needs absolute links.
 
 ## Provenance
 
-This is a port of a Claude Design prototype. The original bundle is kept in
-place: `HANDOFF.md`, the design sources in `project/` (`LHP動作点解析 v2.dc.html`
-and the `support.js` runtime), and the conversation that produced them in
-`chats/`.
+This is a port of a design prototype, kept in `project/`:
+`LHP動作点解析 v2.dc.html` and the `support.js` runtime that renders it.
 
-The port was checked against the prototype rather than eyeballed:
+The port was checked against that prototype rather than eyeballed:
 
 - the solver matches exactly — every field, over a grid of 36,639 operating
   points spanning the full input ranges;
@@ -139,14 +137,9 @@ The port was checked against the prototype rather than eyeballed:
   step, as do table row states and the selection bar text;
 - the CSV export is byte-identical.
 
-Two deliberate departures, both additive:
-
-- the `style-hover` attributes the design runtime never applied are now real
-  CSS hover states;
-- exports fall back from an anchor download to the artifact viewer's save
-  prompt when the page runs embedded, where anchor downloads are inert.
-
-The equations, hand-marked-up in the prototype, are now set with KaTeX.
+Two deliberate departures: the `style-hover` attributes the design runtime
+never applied are now real CSS hover states, and the equations, hand-marked-up
+in the prototype, are set with KaTeX.
 
 `project/LHP CC温度と線図.dc.html` is the earlier v1 prototype and was not
 ported.

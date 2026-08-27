@@ -6,52 +6,14 @@
 import { pointList, type Solution } from './model/solve.js'
 import type { Inputs } from './url.js'
 
-/** Hand the browser a generated file through a plain anchor download. */
-function anchorDownload(name: string, blob: Blob): void {
+/** Hand the browser a generated file. */
+function save(name: string, mime: string, data: string | Blob): void {
+  const blob = typeof data === 'string' ? new Blob([data], { type: mime }) : data
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 4000)
-}
-
-/**
- * Offer a generated file to the user.
- *
- * Standalone — dev server, `npm run build`, a saved copy of the single-file
- * build — this is an anchor download. Embedded in a claude.ai artifact,
- * anchor downloads are inert, so the file goes through the viewer's own save
- * prompt instead when that capability is granted.
- */
-async function save(name: string, mime: string, data: string | Blob): Promise<void> {
-  const blob = typeof data === 'string' ? new Blob([data], { type: mime }) : data
-
-  const use = (window as { claude?: { use?: (n: string) => Promise<unknown> } }).claude?.use
-  if (typeof use === 'function') {
-    try {
-      const downloads = (await use('downloads')) as
-        | { save: (r: { filename: string; data: Blob }) => Promise<unknown> }
-        | null
-      if (downloads) {
-        try {
-          await downloads.save({ filename: name, data: blob })
-        } catch (err) {
-          // .csv is outside the viewer's base filename allowlist and may not
-          // be enabled; the same bytes as .txt are still useful.
-          const code = (err as { code?: string } | null)?.code
-          if (code === 'extension_not_enabled' && name.endsWith('.csv'))
-            await downloads.save({ filename: name.replace(/\.csv$/, '.txt'), data: blob })
-          // Anything else — the viewer declined, a prompt was already open —
-          // is the viewer's answer, not a failure to report.
-        }
-        return
-      }
-    } catch {
-      /* capability unreachable — fall through to the anchor */
-    }
-  }
-
-  anchorDownload(name, blob)
 }
 
 /** Every state point plus the pressure and subcooling budgets. */
@@ -88,7 +50,7 @@ export function exportCsv(inputs: Inputs, r: Solution): void {
     ['dT_sub_available', r.subAv.toFixed(5)],
     ['subcooling_margin', r.subM.toFixed(4)],
   )
-  void save('lhp-operating-point.csv', 'text/csv', rows.map((x) => x.join(',')).join('\n'))
+  save('lhp-operating-point.csv', 'text/csv', rows.map((x) => x.join(',')).join('\n'))
 }
 
 /** Rasterise the main P–T figure and hand it over as a PNG. */
@@ -109,7 +71,7 @@ export function exportPng(): void {
     cx.drawImage(img, 0, 0, cv.width, cv.height)
     cv.toBlob((b) => {
       if (!b) return
-      void save('lhp-pt-diagram.png', 'image/png', b)
+      save('lhp-pt-diagram.png', 'image/png', b)
     })
   }
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<?xml version="1.0"?>' + src)
