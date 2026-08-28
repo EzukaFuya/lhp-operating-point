@@ -12,6 +12,7 @@ import {exportCsv, exportPng, copyLink} from "./components/exports.js";
 import {createSelection, attachSelection} from "./components/selection.js";
 import {resultCards, statePointTable, selectionBar, legend} from "./components/ui.js";
 import {PROCESSES} from "./components/model/processes.js";
+import {asCelsius, REFERENCE_FLUID} from "./components/model/scale.js";
 import {schematic} from "./components/charts/schematic.js";
 import {ptDetail} from "./components/charts/ptDetail.js";
 import {ptGlobal} from "./components/charts/ptGlobal.js";
@@ -129,7 +130,7 @@ const f2 = (v) => v.toFixed(2);
 
 const fields = {};
 
-function control({key, id, label, ariaLabel, step, fmt, definition}) {
+function control({key, id, label, ariaLabel, step, fmt, definition, readout}) {
   const [min, max] = RNG[key];
   const value = start[key];
 
@@ -140,7 +141,11 @@ function control({key, id, label, ariaLabel, step, fmt, definition}) {
 
   number.oninput = (e) => setInput(key, e.target.value);
   slider.oninput = (e) => setInput(key, e.target.value);
-  fields[key] = {number, slider};
+
+  // A secondary reading in real units, for the quantities where the model is
+  // faithful enough to print one. It never replaces the dimensionless value.
+  const readoutEl = readout ? html`<span class="control-readout">${readout(value)}</span>` : null;
+  fields[key] = {number, slider, readoutEl, readout};
 
   return html`<div class="control">
     <div class="control-head"><label for="${id}">${label}</label>${number}</div>
@@ -148,6 +153,7 @@ function control({key, id, label, ariaLabel, step, fmt, definition}) {
     <div class="control-scale">
       <span>${fmt(min)}</span><span class="def">${definition}</span><span>${fmt(max)}</span>
     </div>
+    ${readoutEl ?? ""}
   </div>`;
 }
 
@@ -156,7 +162,8 @@ const controlsEl = html`<div class="controls">
     key: "tcc", id: "in-tcc", step: 0.005, fmt: f3,
     label: html`CC temperature &nbsp;<i>T</i><sub>r,cc</sub>`,
     ariaLabel: "CC temperature, reduced",
-    definition: html`T / T<sub>c</sub> — dimensionless`
+    definition: html`T / T<sub>c</sub> — dimensionless`,
+    readout: asCelsius
   })}
   ${control({
     key: "q", id: "in-q", step: 0.05, fmt: f2,
@@ -168,7 +175,8 @@ const controlsEl = html`<div class="controls">
     key: "tsink", id: "in-ts", step: 0.005, fmt: f3,
     label: html`Sink temperature &nbsp;<i>T</i><sub>r,sink</sub>`,
     ariaLabel: "Sink temperature, reduced",
-    definition: html`must stay below T<sub>r,cc</sub>`
+    definition: html`must stay below T<sub>r,cc</sub>`,
+    readout: asCelsius
   })}
   ${control({
     key: "rp", id: "in-rp", step: 0.05, fmt: f2,
@@ -225,10 +233,11 @@ const warn = warning(inputs, r, v, clamped);
 
 ```js
 // Push state back into the controls that own it, and into the URL.
-for (const [key, {number, slider}] of Object.entries(fields)) {
+for (const [key, {number, slider, readoutEl, readout}] of Object.entries(fields)) {
   const value = String(inputs[key]);
   if (number.value !== value) number.value = value;
   if (slider.value !== value) slider.value = value;
+  if (readoutEl) readoutEl.textContent = readout(inputs[key]);
 }
 switchEl.setAttribute("aria-checked", String(ghost));
 writeHash({...inputs, ghost});
@@ -394,6 +403,38 @@ to be anchored against. <strong>Nothing in this table comes from the model, and 
 should be read as a prediction of it.</strong> They are computed by
 <code>scripts/physical-scale.mjs</code> from standard saturation data (NIST Webbook /
 CoolProp-grade) so they are reproducible.
+</p>
+
+<h3 class="sublabel">Reading the model as ammonia</h3>
+
+<p class="closure">
+Temperature and pressure are reduced by the critical point, so one fluid's critical constants turn
+them back into real units — nothing else has to be assumed. The page prints these beside the
+dimensionless values, under the temperature sliders and in the selection bar.
+</p>
+
+<div class="constants">
+  <div class="constant"><span>T<sub>c</sub></span><span>405.4 K</span></div>
+  <div class="constant"><span>P<sub>c</sub></span><span>11.333 MPa</span></div>
+  <div class="constant"><span>T<sub>r</sub> = 0.580 → </span><span>−38.0 °C</span></div>
+  <div class="constant"><span>T<sub>r</sub> = 0.720 → </span><span>18.7 °C</span></div>
+  <div class="constant"><span>T<sub>r</sub> = 0.920 → </span><span>99.8 °C</span></div>
+</div>
+
+<p class="closure">
+The saturation correlation ln P<sub>r</sub> = A(1 − 1/T<sub>r</sub>) with a single constant
+A = 7 runs about 4–11 % below real ammonia across that range — good enough to print, and stated
+rather than hidden. A test checks the model still sits inside that band, so changing A fails the
+build rather than quietly making this claim false.
+</p>
+
+<p class="closure">
+<strong>Pressure drops are deliberately not converted.</strong> Scaled by P<sub>c</sub> the
+capillary maximum would read about 620 kPa, against 4–42 kPa for a real ammonia wick at 1–10 µm
+pores. The loss coefficients were chosen to put the dry-out boundary somewhere useful in the
+dimensionless range, not to match any loop geometry — so reading them as kPa would be inventing a
+design. Making them real would mean committing to roughly eight loop dimensions and recalibrating
+against them, which this model has not done.
 </p>
 
 <h3 class="sublabel">Ammonia (R-717) at 300 K</h3>

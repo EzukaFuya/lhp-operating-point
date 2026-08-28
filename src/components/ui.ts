@@ -6,6 +6,7 @@
 
 import { COL } from './model/constants.js'
 import { processesAt } from './model/processes.js'
+import { asCelsius, asKilopascals } from './model/scale.js'
 import { pointList, type Solution } from './model/solve.js'
 import type { Verdict } from './verdict.js'
 
@@ -193,6 +194,11 @@ export function selectionBar(
       pt ? `T r ${pt.t.toFixed(3)}   P r ${pt.p.toFixed(4)}   s * ${pt.s.toFixed(2)}` : '',
     ),
   )
+  // The same state read as ammonia. Secondary to the dimensionless values, and
+  // only for the two quantities the correlation is faithful enough to convert.
+  if (pt) {
+    bar.append(el('span', 'selbar-real', `${asCelsius(pt.t)}   ${asKilopascals(pt.p)}`))
+  }
 
   const tag = pinned
     ? hovered && hovered !== pinned

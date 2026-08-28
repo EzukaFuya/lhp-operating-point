@@ -21,7 +21,7 @@ function save(name: string, mime: string, data: string | Blob): void {
  * or the solver changes, so an exported file can be traced to what produced
  * it.
  */
-export const MODEL_VERSION = '2.2.0-qualitative'
+export const MODEL_VERSION = '2.3.0-qualitative'
 
 /**
  * Every state point plus the pressure and subcooling budgets.

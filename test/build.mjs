@@ -20,6 +20,7 @@ export const ENTRIES = {
   verdict: 'src/components/verdict.ts',
   exports: 'src/components/exports.ts',
   processes: 'src/components/model/processes.ts',
+  scale: 'src/components/model/scale.ts',
 }
 
 export function buildOnce() {

@@ -31,6 +31,14 @@ against a high-fidelity code, and it must not be used for design.**
   model — no number in that section is a model prediction, and no LHP-specific
   design value is cited, because this repository has no source to cite one
   from.
+- **Only two quantities are read dimensionally.** Temperature and saturation
+  pressure are shown beside the reduced values as ammonia, since each costs a
+  single cited critical constant and the `ln P_r = 7(1 − 1/T_r)` closure tracks
+  real ammonia to 4–11 % over the input range. The pressure *drops* are
+  deliberately left dimensionless: scaled by `Pc` the capillary maximum would
+  read about 620 kPa against 4–42 kPa for a real ammonia wick, because `Ca` was
+  chosen to place the dry-out boundary usefully in the reduced range, not to
+  match a wick. See "Reading the model as ammonia" on the page.
 - **The T–s figure is a schematic state map.** State points come from the
   solver, but the segments between them are straight lines: no quality
   distribution and no enthalpy balance is solved along the two-phase legs.
@@ -122,6 +130,15 @@ energy-balance error these exist to catch:
 - the nine process legs chain 1→…→1 without repeating or skipping a station,
   each carries physics and a failure mode, and none produces `NaN` anywhere in
   range
+- the dimensional mapping round-trips, and the model stays inside the accuracy
+  band the page prints — so changing `A = 7` fails a test rather than quietly
+  making the stated 4–11 % false
+
+`test/style.test.mjs` covers the two layout invariants that fail silently,
+with no error anywhere: the slider's `height` must exceed its vertical padding
+(under the global `border-box` reset it is the *total*, and when the padding
+swallowed it the painted track vanished), and grid children must be allowed to
+shrink below their content width.
 
 ### Building without jsDelivr
 
@@ -157,7 +174,8 @@ shown as a verdict first and figures second:
 6. state-point table and the pressure profile around the loop
 7. the T–s plane and the condenser interface position
 8. the wick trade-off — capillary margin against pore radius
-9. physical scale — real dimensional values, kept apart from model output
+9. physical scale — real dimensional values, and the mapping that reads the
+   model as ammonia, both kept apart from model output
 10. governing relations and assumptions, collapsed by default
 
 Selecting a state point also shows the physics of the legs either side of it:
@@ -202,6 +220,7 @@ src/
       properties.ts   reduced properties as functions of T_r
       solve.ts        one pass around the loop; the passive root-find
       processes.ts    the nine legs: governing relations and where they break
+      scale.ts        the dimensional mapping; kept out of the solver
     charts/       SVG figures
       dom.ts          a createElement-shaped helper that builds real DOM
       primitives.ts   scales, frame, de-collision, label stacking, markers
@@ -223,6 +242,7 @@ scripts/
 test/
   build.mjs       bundles the model to ESM for the test runner
   model.test.mjs  the invariants above
+  style.test.mjs  the layout invariants that fail without an error
 ```
 
 The figures build SVG through a helper shaped like `React.createElement`, so

@@ -19,6 +19,7 @@ const { CV, RNG, clampInput, DEF } = await import(out + '/constants.mjs')
 const { verdict, warning } = await import(out + '/verdict.mjs')
 const { MODEL_VERSION } = await import(out + '/exports.mjs')
 const { PROCESSES, processesAt } = await import(out + '/processes.mjs')
+const scale = await import(out + '/scale.mjs')
 
 /** A coarse sweep of the whole valid input space. */
 function* sweep({ dt = 0.01, dq = 0.1, ds = 0.02 } = {}) {
@@ -460,5 +461,50 @@ describe('process breakdown', () => {
     }
     // 2' is a construction point, not a station.
     assert.equal(processesAt('2′').length, 0)
+  })
+})
+
+describe('reading the model as a real fluid', () => {
+  it('converts reduced temperature and pressure by the critical point', () => {
+    const { Tc, Pc } = scale.REFERENCE_FLUID
+    assert.equal(scale.kelvin(1), Tc)
+    assert.equal(scale.pascals(1), Pc)
+    assert.ok(Math.abs(scale.celsius(0.72) - (0.72 * Tc - 273.15)) < 1e-9)
+    assert.ok(Math.abs(scale.celsius(0.72) - 18.7) < 0.05, 'the default should read ~18.7 °C')
+    for (const tr of [0.58, 0.72, 0.92])
+      assert.ok(Math.abs(scale.kelvin(tr) / Tc - tr) < 1e-12, 'kelvin does not round-trip')
+  })
+
+  it('stays inside the accuracy band the page advertises', () => {
+    // The page prints "about 4-11 % below real ammonia". That is a claim about
+    // the correlation constant A, so it is asserted here: change A and this
+    // fails rather than the printed claim silently becoming wrong.
+    let worst = 0
+    for (const [T, Preal] of scale.AMMONIA_SATURATION) {
+      const tr = T / scale.REFERENCE_FLUID.Tc
+      const err = Math.abs(scale.pascals(props.pr(tr)) / Preal - 1)
+      worst = Math.max(worst, err)
+    }
+    assert.ok(
+      worst <= scale.SATURATION_ACCURACY,
+      `worst saturation error ${(worst * 100).toFixed(1)} % exceeds the advertised ${(scale.SATURATION_ACCURACY * 100).toFixed(0)} %`,
+    )
+  })
+
+  it('the reference points span the input range', () => {
+    // A band asserted only near the middle would not be worth much.
+    const trs = scale.AMMONIA_SATURATION.map(([T]) => T / scale.REFERENCE_FLUID.Tc)
+    assert.ok(Math.min(...trs) <= RNG.tcc[0] + 0.02, 'no reference point near the cold end')
+    assert.ok(Math.max(...trs) >= RNG.tcc[1] - 0.09, 'no reference point near the hot end')
+  })
+
+  it('offers no conversion for pressure drops', () => {
+    // Deliberate: scaled by Pc the capillary maximum reads a few hundred kPa
+    // against 4-42 kPa for a real wick, so the module must not tempt callers.
+    for (const name of Object.keys(scale))
+      assert.ok(
+        !/drop|dp|head|capillary/i.test(name),
+        `scale.${name} looks like a pressure-drop conversion, which is not calibrated`,
+      )
   })
 })
