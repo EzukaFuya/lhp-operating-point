@@ -25,7 +25,12 @@ against a high-fidelity code, and it must not be used for design.**
   reference surface tension and pore geometry into one constant, chosen to put
   the dry-out boundary in a useful part of the range. It is not measured.
 - **No experimental comparison.** There is no benchmark case in this
-  repository, so no error bar and no stated range of applicability.
+  repository, so no error bar and no stated range of applicability. The
+  "Physical scale" section carries real dimensional values for ammonia, but
+  they are there to anchor intuition and are computed independently of the
+  model — no number in that section is a model prediction, and no LHP-specific
+  design value is cited, because this repository has no source to cite one
+  from.
 - **The T–s figure is a schematic state map.** State points come from the
   solver, but the segments between them are straight lines: no quality
   distribution and no enthalpy balance is solved along the two-phase legs.
@@ -49,6 +54,20 @@ state the loop would reach on its own.
   is where a loop with no CC heater or cooler actually settles. Bracket-scan
   then bisection, because `Rcc` is only piecewise smooth. It reports when no
   root exists in range rather than returning something plausible-looking.
+
+## The wick trade-off
+
+Pore radius is an input, and it pulls two ways at once. The capillary head the
+meniscus can hold goes as `1/r_p`; the wick's own pressure loss goes as `1/K`,
+and Kozeny–Carman at fixed porosity gives `K ∝ r_p²`. The loss therefore grows
+faster than the head it is buying, so shrinking pores is not a free
+improvement — there is an optimum, and the "wick trade-off" figure shows where
+it currently sits.
+
+Two limits of this, stated because the figure looks more authoritative than it
+is: porosity is held fixed, where a real wick trades that too; and the wick
+heat-leak conductance `G_w` is a constant, so pore size changes *whether* the
+loop can run but never *where* it settles. In a real wick those are coupled.
 
 ## Regimes
 
@@ -97,6 +116,12 @@ energy-balance error these exist to catch:
 - a state that cannot close is never reported as closed, always warns, and its
   status card, banner and figure watermark agree
 - every output is finite everywhere in range
+- `rp = 1` reproduces the pre-coupling wick loss exactly, the head goes as
+  `1/rp` and the loss as `1/rp²`, and the capillary margin has an **interior**
+  optimum — the test that would have caught the missing trade-off
+- the nine process legs chain 1→…→1 without repeating or skipping a station,
+  each carries physics and a failure mode, and none produces `NaN` anywhere in
+  range
 
 ### Building without jsDelivr
 
@@ -118,19 +143,29 @@ page must load with no third-party requests at all.
 
 ## What the page does
 
-Three reduced inputs — CC temperature `T_r,cc`, heat load `Q*` and sink
-temperature `T_r,sink` — drive one solver pass around the loop. The result is
+Four reduced inputs — CC temperature `T_r,cc`, heat load `Q*`, sink
+temperature `T_r,sink` and pore radius `r_p*` — drive one solver pass around the
+loop. The result is
 shown as a verdict first and figures second:
 
 1. purpose and caveat
-2. the three inputs (slider and direct number entry, both keyboard-reachable)
+2. the four inputs (slider and direct number entry, both keyboard-reachable)
 3. **verdict cards** — capillary margin, subcooling margin, regime, status,
    and the CC energy-balance residual
 4. the loop schematic, with the nine states in their physical positions
 5. the main P–T figure, axes magnified about the operating point
 6. state-point table and the pressure profile around the loop
 7. the T–s plane and the condenser interface position
-8. governing relations and assumptions, collapsed by default
+8. the wick trade-off — capillary margin against pore radius
+9. physical scale — real dimensional values, kept apart from model output
+10. governing relations and assumptions, collapsed by default
+
+Selecting a state point also shows the physics of the legs either side of it:
+the governing relation, which way the leg moves on each plane, what this model
+computes for it, and the assumption that fails first. The relation and the
+model's treatment of it are marked out separately, because they are often not
+the same thing — the liquid line is the clearest case, where the physics is
+Joule–Thomson and the model carries only an ambient-gain term.
 
 One selection runs through everything. Hovering a state point — in any figure
 or in the table — previews it; clicking, tapping or tabbing to it and pressing
@@ -166,6 +201,7 @@ src/
       constants.ts    A, the closure coefficients, ranges, palette
       properties.ts   reduced properties as functions of T_r
       solve.ts        one pass around the loop; the passive root-find
+      processes.ts    the nine legs: governing relations and where they break
     charts/       SVG figures
       dom.ts          a createElement-shaped helper that builds real DOM
       primitives.ts   scales, frame, de-collision, label stacking, markers
@@ -175,6 +211,7 @@ src/
       tsChart.ts      the T–s plane
       profChart.ts    pressure around the loop
       condBar.ts      the condenser two-phase / subcooled split
+      wickTradeoff.ts capillary margin against pore radius
     selection.ts  the shared hover/pin selection, delegated from one listener
     ui.ts         verdict cards, state table, selection bar, legend
     verdict.ts    margins, regime, status and the remedial guidance
@@ -182,6 +219,7 @@ src/
     exports.ts    CSV, PNG and copy-link
 scripts/
   vendor-npm.mjs  populates Framework's npm cache from the registry
+  physical-scale.mjs  computes the dimensional reference values, reproducibly
 test/
   build.mjs       bundles the model to ESM for the test runner
   model.test.mjs  the invariants above

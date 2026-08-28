@@ -18,6 +18,7 @@ const props = await import(out + '/properties.mjs')
 const { CV, RNG, clampInput, DEF } = await import(out + '/constants.mjs')
 const { verdict, warning } = await import(out + '/verdict.mjs')
 const { MODEL_VERSION } = await import(out + '/exports.mjs')
+const { PROCESSES, processesAt } = await import(out + '/processes.mjs')
 
 /** A coarse sweep of the whole valid input space. */
 function* sweep({ dt = 0.01, dq = 0.1, ds = 0.02 } = {}) {
@@ -341,5 +342,123 @@ describe('release metadata', () => {
       MODEL_VERSION.startsWith(pkg.version),
       `MODEL_VERSION ${MODEL_VERSION} does not start with package version ${pkg.version}`,
     )
+  })
+})
+
+describe('wick pore-radius trade-off', () => {
+  it('rp = 1 leaves the reference wick exactly as it was', () => {
+    // K* = rp*² is 1 at the reference, so coupling permeability to pore size
+    // must not have moved the default operating point at all.
+    for (const { tcc, q, ts } of sweep({ dt: 0.05, dq: 0.5, ds: 0.1 })) {
+      const r = solve(tcc, q, ts, 1)
+      assert.equal(r.kperm, 1)
+      assert.ok(Math.abs(r.dpWK - (CV.Cw * props.mul(tcc) * r.mdot) / props.rhol(tcc)) < 1e-15)
+    }
+  })
+
+  it('the head goes as 1/rp and the wick loss as 1/rp²', () => {
+    const base = solve(0.72, 1.0, 0.6, 1)
+    for (const k of [0.5, 2, 4]) {
+      const r = solve(0.72, 1.0, 0.6, k)
+      assert.ok(Math.abs(r.dpMax - base.dpMax / k) < 1e-12, `head at rp=${k}`)
+      assert.ok(Math.abs(r.dpWK - base.dpWK / (k * k)) < 1e-12, `wick loss at rp=${k}`)
+    }
+  })
+
+  it('the capillary margin has an interior optimum, not a monotone one', () => {
+    // This is the test that would have caught the original defect: with the
+    // wick loss independent of pore size, the margin rose all the way to the
+    // smallest pore and this assertion would fail.
+    const [lo, hi] = RNG.rp
+    let best = { rp: lo, m: -Infinity }
+    const N = 400
+    for (let i = 0; i <= N; i++) {
+      const rp = lo + ((hi - lo) * i) / N
+      const m = solve(0.72, 1.0, 0.6, rp).capM
+      if (m > best.m) best = { rp, m }
+    }
+    assert.ok(best.rp > lo + 1e-6, `optimum sat on the small-pore end at rp = ${best.rp}`)
+    assert.ok(best.rp < hi - 1e-6, `optimum sat on the large-pore end at rp = ${best.rp}`)
+    // and it really is a maximum: worse on both sides
+    assert.ok(solve(0.72, 1.0, 0.6, best.rp * 0.5).capM < best.m)
+    assert.ok(solve(0.72, 1.0, 0.6, best.rp * 1.8).capM < best.m)
+  })
+
+  it('shrinking pores far enough drives the loop non-physical', () => {
+    // The head cannot outrun a loss that grows as its square.
+    const r = solve(0.72, 1.0, 0.6, RNG.rp[0])
+    assert.notEqual(r.status, 'closed')
+  })
+
+  it('the wick changes whether the passive point is reachable, not where it is', () => {
+    // The wick loss enters the pressure budget, not the CC energy balance, and
+    // the wick heat-leak conductance G_w is a fixed constant here — so the
+    // temperature the loop settles at is independent of pore size, while
+    // whether it can run there is not. That is a limitation of the closure,
+    // recorded rather than papered over.
+    const coarse = solveOperatingPoint(1.0, 0.6, 1.0)
+    const fine = solveOperatingPoint(1.0, 0.6, 0.15)
+    assert.ok(coarse.tcc !== null && fine.tcc !== null)
+    assert.ok(
+      Math.abs(coarse.tcc - fine.tcc) < 1e-9,
+      'the CC energy balance picked up a pore-radius dependence it should not have',
+    )
+    assert.equal(coarse.reachable, true)
+    assert.equal(fine.reachable, false, 'a wick this fine should not be able to run')
+  })
+})
+
+describe('process breakdown', () => {
+  it('covers all nine legs and closes the loop', () => {
+    assert.equal(PROCESSES.length, 9)
+    const ids = new Set(pointList(solve(0.72, 1.0, 0.6)).map((p) => p.id))
+    for (const leg of PROCESSES) {
+      assert.ok(ids.has(leg.from), `${leg.id}: unknown from-state ${leg.from}`)
+      assert.ok(ids.has(leg.to), `${leg.id}: unknown to-state ${leg.to}`)
+      assert.equal(leg.id, `${leg.from}→${leg.to}`)
+    }
+    // Following `to` from 1 must visit every station and return to 1.
+    const next = new Map(PROCESSES.map((p) => [p.from, p.to]))
+    const seen = []
+    let at = '1'
+    for (let i = 0; i < 9; i++) {
+      seen.push(at)
+      at = next.get(at)
+      assert.ok(at !== undefined, `chain broke after ${seen.join('→')}`)
+    }
+    assert.equal(at, '1', 'the chain did not return to state 1')
+    assert.equal(new Set(seen).size, 9, 'the chain repeated a station')
+  })
+
+  it('every leg carries physics, both directions, and its own failure mode', () => {
+    for (const leg of PROCESSES) {
+      assert.ok(leg.governing.length > 0, `${leg.id} has no governing relation`)
+      assert.ok(leg.physics.length > 40, `${leg.id} physics is too thin`)
+      assert.ok(leg.pt.label && leg.pt.detail, `${leg.id} has no P–T direction`)
+      assert.ok(leg.ts.label && leg.ts.detail, `${leg.id} has no T–s direction`)
+      assert.ok(leg.breaks.length > 40, `${leg.id} does not say what breaks first`)
+    }
+  })
+
+  it('reports live numbers for every leg, at any operating point', () => {
+    for (const { tcc, q, ts } of sweep({ dt: 0.1, dq: 1.0, ds: 0.2 })) {
+      const r = solve(tcc, q, ts)
+      for (const leg of PROCESSES) {
+        const s = leg.computed(r)
+        assert.ok(s.length > 0, `${leg.id} computed nothing`)
+        assert.ok(!/NaN|Infinity|undefined/.test(s), `${leg.id} produced "${s}"`)
+      }
+    }
+  })
+
+  it('selecting a station gives the legs either side of it', () => {
+    for (const id of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) {
+      const legs = processesAt(id)
+      assert.equal(legs.length, 2, `state ${id} has ${legs.length} legs`)
+      assert.ok(legs.some((l) => l.to === id), `nothing enters ${id}`)
+      assert.ok(legs.some((l) => l.from === id), `nothing leaves ${id}`)
+    }
+    // 2' is a construction point, not a station.
+    assert.equal(processesAt('2′').length, 0)
   })
 })

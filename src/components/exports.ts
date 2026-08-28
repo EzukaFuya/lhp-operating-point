@@ -21,7 +21,7 @@ function save(name: string, mime: string, data: string | Blob): void {
  * or the solver changes, so an exported file can be traced to what produced
  * it.
  */
-export const MODEL_VERSION = '2.1.0-qualitative'
+export const MODEL_VERSION = '2.2.0-qualitative'
 
 /**
  * Every state point plus the pressure and subcooling budgets.
@@ -45,6 +45,7 @@ export function exportCsv(inputs: Inputs, r: Solution): void {
     ['# Tr_cc', inputs.tcc.toFixed(4)],
     ['# Q*', inputs.q.toFixed(3)],
     ['# Tr_sink', inputs.tsink.toFixed(4)],
+    ['# rp*', inputs.rp.toFixed(4)],
     [],
     ['# status', r.status],
     ['# cc_energy_residual_Rcc', r.Rcc.toFixed(6)],
@@ -87,6 +88,8 @@ export function exportCsv(inputs: Inputs, r: Solution): void {
     ['dP_cap', r.dpCap.toFixed(6)],
     ['dP_cap_max', r.dpMax.toFixed(6)],
     ['capillary_margin', r.capM.toFixed(4)],
+    ['rp*', r.rp.toFixed(4)],
+    ['wick_permeability_K*', r.kperm.toFixed(6)],
     ['L2phi_over_Lc', r.f.toFixed(4)],
     ['regime', r.f >= 1 ? 'fixed_conductance' : 'variable_conductance'],
     ['dT_sub_required', r.subReq.toFixed(5)],

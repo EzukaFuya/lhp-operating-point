@@ -15,7 +15,7 @@
  * quantities are normalised against, and the README for validation status.
  */
 
-import { CV, PORE_RADIUS, RNG } from './constants.js'
+import { CV, permeability, PORE_RADIUS, RNG } from './constants.js'
 import { dpdt, hfg, mul, pr, rhol, rhov, sig, sl, ssh, sv, trs } from './properties.js'
 
 /**
@@ -70,6 +70,10 @@ export interface Solution {
   rl: number
   /** Two-phase fraction of the condenser length, L_2φ/L_c. */
   f: number
+  /** Effective pore radius this solution was computed at. */
+  rp: number
+  /** Wick permeability K*, normalised to 1 at the reference pore radius. */
+  kperm: number
 
   // pressure-drop budget
   dpGV: number
@@ -136,7 +140,11 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
   const dpVL = (K.Cv * mdot) / rv
   const dpCO = (K.Cc * f * mdot) / rv
   const dpLL = (K.Cl * mu * mdot) / rl
-  const dpWK = (K.Cw * mu * mdot) / rl
+  // Darcy through the wick: ΔP = μ·L_w·ṁ/(K·ρ·A_w). Shrinking the pores raises
+  // the capillary head below as 1/rp, but costs permeability as 1/rp², so the
+  // loss grows faster than the head — which is what makes an optimum exist.
+  const kperm = permeability(rp)
+  const dpWK = (K.Cw * mu * mdot) / (rl * kperm)
   const dpCap = dpGV + dpVL + dpCO + dpLL + dpWK
   const dpMax = (K.Ca * sig(t8)) / rp
 
@@ -229,6 +237,8 @@ export function solve(t8: number, q: number, tsink: number, rp = PORE_RADIUS): S
     rv,
     rl,
     f,
+    rp,
+    kperm,
     dpGV,
     dpVL,
     dpCO,

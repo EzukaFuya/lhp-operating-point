@@ -19,6 +19,7 @@ export const ENTRIES = {
   constants: 'src/components/model/constants.ts',
   verdict: 'src/components/verdict.ts',
   exports: 'src/components/exports.ts',
+  processes: 'src/components/model/processes.ts',
 }
 
 export function buildOnce() {

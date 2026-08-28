@@ -17,7 +17,11 @@ export const CV = {
   Cc: 0.008,
   /** Liquid-line pressure-drop coefficient. */
   Cl: 0.002,
-  /** Wick pressure-drop coefficient. */
+  /**
+   * Wick pressure-drop coefficient. Lumps the wick thickness and flow area
+   * against a reference permeability, `L_w/(K_ref·A_w)`; the pore-radius
+   * dependence is carried separately by `K* = rp*²` — see `solve`.
+   */
   Cw: 0.005,
   /** Capillary head coefficient in ΔP_cap,max = Ca·σ/r_p. */
   Ca: 0.06,
@@ -46,18 +50,33 @@ export const RNG = {
   tcc: [0.58, 0.92],
   q: [0.1, 3],
   tsink: [0.45, 0.88],
+  rp: [0.1, 3],
 } as const
 
 export type InputKey = keyof typeof RNG
 
 /** Default operating point, restored by "Reset to default". */
-export const DEF = { tcc: 0.72, q: 1.0, tsink: 0.6 } as const
+export const DEF = { tcc: 0.72, q: 1.0, tsink: 0.6, rp: 1.0 } as const
 
 /** Reference CC temperature drawn as the ghost overlay. */
 export const REF_TCC = 0.78
 
-/** Effective pore radius r_p*. */
-export const PORE_RADIUS = 1.0
+/**
+ * Effective pore radius r_p*, normalised so that the reference wick is 1.
+ *
+ * This is an input rather than a constant: it sets the capillary head *and*
+ * the wick permeability, and those pull in opposite directions.
+ */
+export const PORE_RADIUS: number = DEF.rp
+
+/**
+ * Wick permeability, normalised to 1 at the reference pore radius.
+ *
+ * Kozeny–Carman gives `K = ε³d²/(180(1−ε)²)`, so at fixed porosity `K ∝ r_p²`.
+ * Porosity is held fixed here — a real wick trades that too — so this shows
+ * the shape of the pore-size trade-off, not a wick you could order.
+ */
+export const permeability = (rp: number): number => rp * rp
 
 /** Palette. `vap`/`liq`/`wick`/`sat` also carry the line-style coding. */
 export const COL = {

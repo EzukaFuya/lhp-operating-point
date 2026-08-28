@@ -9,6 +9,8 @@ export interface Inputs {
   tcc: number
   q: number
   tsink: number
+  /** Effective pore radius r_p*. */
+  rp: number
 }
 
 export interface HashState extends Partial<Inputs> {
@@ -20,7 +22,7 @@ export function readHash(): HashState {
   try {
     const h = new URLSearchParams((location.hash || '').replace(/^#/, ''))
     const p: HashState = {}
-    ;(['tcc', 'q', 'tsink'] as InputKey[]).forEach((k) => {
+    ;(['tcc', 'q', 'tsink', 'rp'] as InputKey[]).forEach((k) => {
       const v = parseFloat(h.get(k) ?? '')
       if (isFinite(v)) p[k] = clampInput(k, v)
     })
@@ -43,6 +45,8 @@ export function writeHash(s: Inputs & { ghost: boolean }): void {
         s.q.toFixed(2) +
         '&tsink=' +
         s.tsink.toFixed(3) +
+        '&rp=' +
+        s.rp.toFixed(3) +
         '&ghost=' +
         (s.ghost ? 1 : 0),
     )

@@ -879,3 +879,145 @@ h3.sublabel {
 .observablehq {
   margin: 0;
 }
+
+/* ------------------------------------------------------- process breakdown */
+
+/*
+ * What happens on the legs either side of the selected state. Two registers
+ * are kept apart on purpose: the physics of a leg holds whatever this model
+ * does, so `process-computed` (what the model produces) and `process-breaks`
+ * (where it stops being trustworthy) are marked out rather than blended in.
+ */
+.processes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.process {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--quiet);
+  background: var(--surface);
+  padding: 13px 16px 14px;
+  min-width: 0;
+}
+
+.process-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.process-id {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--hi);
+}
+
+.process-name {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.process-eq {
+  margin: 10px 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+.process-physics {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--mid);
+  text-wrap: pretty;
+}
+
+.process-dirs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin-top: 10px;
+}
+
+.process-dir {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.process-plane {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.process-dir-label {
+  font-weight: 500;
+}
+
+.process-dir-detail {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.process-computed,
+.process-breaks {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.process-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--surface);
+  background: var(--quiet);
+}
+
+.process-tag-warn {
+  background: #a4790f;
+}
+
+.process-computed-text {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink);
+}
+
+.process-breaks-text {
+  color: var(--mid);
+  text-wrap: pretty;
+}
+
+.process-none {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 1px solid var(--rule);
+  background: var(--wash);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--mid);
+}
+
+/* KaTeX inside a process block should not outgrow it. */
+.process-eq .katex {
+  font-size: 1em;
+}

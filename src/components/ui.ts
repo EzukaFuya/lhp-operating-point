@@ -5,6 +5,7 @@
  */
 
 import { COL } from './model/constants.js'
+import { processesAt } from './model/processes.js'
 import { pointList, type Solution } from './model/solve.js'
 import type { Verdict } from './verdict.js'
 
@@ -171,8 +172,15 @@ export function selectionBar(
   pinned: string | null,
   hovered: string | null,
   onClear: () => void,
+  /**
+   * Renders TeX source to a node. Passed in rather than imported so this
+   * module stays free of the renderer, and so the model modules it draws on
+   * can still be bundled for the tests.
+   */
+  renderTex?: (src: string) => Node,
 ): HTMLElement {
   const pt = pointList(r).find((p) => p.id === active) ?? null
+  const wrap = el('div', 'selection')
   const bar = el('div', 'selbar')
   if (pt) bar.classList.add('is-active')
 
@@ -203,7 +211,75 @@ export function selectionBar(
   }
 
   bar.append(el('span', 'selbar-note', pt ? pt.note : ''))
-  return bar
+  wrap.append(bar)
+
+  // What happens on the way in and on the way out. The physics of a leg holds
+  // regardless of this model, so it is kept visually distinct from what the
+  // model computes for it.
+  if (pt) {
+    const legs = processesAt(pt.id)
+    if (legs.length) {
+      const list = el('div', 'processes')
+      legs.forEach((leg) => {
+        const block = el('div', 'process')
+
+        const head = el('div', 'process-head')
+        head.append(
+          el('span', 'process-id', leg.id),
+          el('span', 'process-name', leg.name),
+        )
+        block.append(head)
+
+        if (renderTex) {
+          const eq = el('div', 'process-eq')
+          eq.append(renderTex(leg.governing))
+          block.append(eq)
+        }
+
+        block.append(el('p', 'process-physics', leg.physics))
+
+        const dirs = el('div', 'process-dirs')
+        ;[
+          ['P–T', leg.pt],
+          ['T–s', leg.ts],
+        ].forEach(([plane, d]) => {
+          const dir = el('div', 'process-dir')
+          dir.append(
+            el('span', 'process-plane', plane as string),
+            el('span', 'process-dir-label', (d as { label: string }).label),
+            el('span', 'process-dir-detail', (d as { detail: string }).detail),
+          )
+          dirs.append(dir)
+        })
+        block.append(dirs)
+
+        const computed = el('div', 'process-computed')
+        computed.append(
+          el('span', 'process-tag', 'this model'),
+          el('span', 'process-computed-text', leg.computed(r)),
+        )
+        block.append(computed)
+
+        const breaks = el('div', 'process-breaks')
+        breaks.append(
+          el('span', 'process-tag process-tag-warn', 'breaks first'),
+          el('span', 'process-breaks-text', leg.breaks),
+        )
+        block.append(breaks)
+
+        list.append(block)
+      })
+      wrap.append(list)
+    } else {
+      // 2′ only.
+      const note = el('div', 'process-none')
+      note.textContent =
+        'A construction point on the saturation curve at P₂, not a station in the loop — no leg enters or leaves it. The gap 2′→2 is the vapour superheat.'
+      wrap.append(note)
+    }
+  }
+
+  return wrap
 }
 
 /* ----------------------------------------------------------------- legend */

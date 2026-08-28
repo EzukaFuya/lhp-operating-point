@@ -5,18 +5,20 @@ toc: false
 
 ```js
 import {solve, solveOperatingPoint} from "./components/model/solve.js";
-import {DEF, REF_TCC, RNG, PORE_RADIUS, CV, clampInput} from "./components/model/constants.js";
+import {DEF, REF_TCC, RNG, CV, clampInput} from "./components/model/constants.js";
 import {verdict, warning} from "./components/verdict.js";
 import {readHash, writeHash} from "./components/url.js";
 import {exportCsv, exportPng, copyLink} from "./components/exports.js";
 import {createSelection, attachSelection} from "./components/selection.js";
 import {resultCards, statePointTable, selectionBar, legend} from "./components/ui.js";
+import {PROCESSES} from "./components/model/processes.js";
 import {schematic} from "./components/charts/schematic.js";
 import {ptDetail} from "./components/charts/ptDetail.js";
 import {ptGlobal} from "./components/charts/ptGlobal.js";
 import {tsChart} from "./components/charts/tsChart.js";
 import {profChart} from "./components/charts/profChart.js";
 import {condBar} from "./components/charts/condBar.js";
+import {wickTradeoff} from "./components/charts/wickTradeoff.js";
 ```
 
 <div class="masthead">
@@ -24,9 +26,11 @@ import {condBar} from "./components/charts/condBar.js";
   <h1>How the compensation chamber sets the loop operating point</h1>
   <p class="lede">
     The CC is the only saturated volume in the loop, so its temperature fixes the pressure level
-    everything else hangs from. Move the three inputs and watch where the cycle sits on the
-    saturation curve, how much capillary head is left, and whether the returning liquid can carry
-    the parasitic heat leak away.
+    everything else hangs from. Move the inputs and watch where the cycle sits on the saturation
+    curve, how much capillary head is left, and whether the returning liquid can carry the
+    parasitic heat leak away. The fourth input is the wick itself: shrinking the pores buys
+    capillary head as 1/r<sub>p</sub> but costs permeability as 1/r<sub>p</sub>², so there is an
+    optimum rather than a monotone improvement.
   </p>
   <p class="lede">
     The page runs in two modes. <strong>Prescribed CC</strong> — the default — treats
@@ -56,7 +60,8 @@ const restored = readHash();
 const start = {
   tcc: restored.tcc ?? DEF.tcc,
   q: restored.q ?? DEF.q,
-  tsink: restored.tsink ?? DEF.tsink
+  tsink: restored.tsink ?? DEF.tsink,
+  rp: restored.rp ?? DEF.rp
 };
 
 const inputs = Mutable(start);
@@ -87,8 +92,8 @@ const solveNote = Mutable(null);
 // move the slider there. Q* and the sink temperature are held fixed — they are
 // the boundary conditions the loop responds to.
 function solvePassive() {
-  const {q, tsink} = inputs.value;
-  const op = solveOperatingPoint(q, tsink);
+  const {q, tsink, rp} = inputs.value;
+  const op = solveOperatingPoint(q, tsink, rp);
 
   // No root at all: nothing to move to.
   if (op.tcc === null) {
@@ -165,6 +170,12 @@ const controlsEl = html`<div class="controls">
     ariaLabel: "Sink temperature, reduced",
     definition: html`must stay below T<sub>r,cc</sub>`
   })}
+  ${control({
+    key: "rp", id: "in-rp", step: 0.05, fmt: f2,
+    label: html`Pore radius &nbsp;<i>r</i><sub>p</sub>*`,
+    ariaLabel: "Effective pore radius, reduced",
+    definition: html`head ∝ 1/r<sub>p</sub>, wick loss ∝ 1/r<sub>p</sub>²`
+  })}
 </div>`;
 
 display(controlsEl);
@@ -206,8 +217,8 @@ display(html`<div class="toolbar">
 ```js
 // The solution, the reference overlay, and the judgement drawn from them.
 // Everything downstream is a pure function of these.
-const r = solve(inputs.tcc, inputs.q, inputs.tsink);
-const g = ghost ? solve(REF_TCC, inputs.q, inputs.tsink) : null;
+const r = solve(inputs.tcc, inputs.q, inputs.tsink, inputs.rp);
+const g = ghost ? solve(REF_TCC, inputs.q, inputs.tsink, inputs.rp) : null;
 const v = verdict(inputs, r);
 const warn = warning(inputs, r, v, clamped);
 ```
@@ -262,6 +273,10 @@ const sel = Generators.observe((notify) => {
 ```js
 // The point to draw highlighted: a live hover preview, else the pin.
 const active = sel.hi ?? sel.sel;
+
+// The process blocks carry TeX source; Framework's `tex` renders it. Passing
+// the renderer in keeps the model and UI modules free of any dependency on it.
+const renderTex = (src) => tex`${src}`;
 ```
 
 <div class="section">
@@ -304,6 +319,14 @@ const active = sel.hi ?? sel.sel;
   <div>
     <h2>The cycle on the T–s plane</h2>
     <p>Raising T<sub>r,cc</sub> lifts the cycle and narrows it: the latent heat falls, so the 9→1 crossing of the dome gets shorter.</p>
+    <p>
+      The enclosed area is not output work — an LHP produces none. But it is not nothing either:
+      since <i>h</i> is a state function, ∮d<i>h</i> = 0 gives ∮<i>T</i>d<i>s</i> = −∮<i>v</i>d<i>P</i>,
+      so the area is the driving work the loop generates and immediately dissipates in its own
+      flow losses. The pressure budget above and this area are the same statement, read through
+      pressure and through energy. (The drawn polygon is schematic, so it is not a faithful
+      ∮<i>T</i>d<i>s</i>.)
+    </p>
     <div class="fig-narrow" id="slot-ts"></div>
   </div>
   <div>
@@ -311,6 +334,16 @@ const active = sel.hi ?? sel.sel;
     <p>The whole cycle is a small box sliding along the saturation line. The condenser splits itself into a two-phase and a subcooled length to absorb the load.</p>
     <div class="fig-narrow" id="slot-global"></div>
     <div class="fig-narrow" id="slot-condbar" style="margin-top: 16px;"></div>
+  </div>
+  <div>
+    <h2>The wick trade-off</h2>
+    <p>
+      Shrinking the pores buys capillary head as 1/r<sub>p</sub> but costs permeability as
+      1/r<sub>p</sub>², so the wick's own loss grows faster than the head it is paying for. There is
+      an optimum, not a monotone improvement. Load and sink temperature are held where they are, so
+      this is the trade-off at the current operating point.
+    </p>
+    <div class="fig-narrow" id="slot-wick"></div>
   </div>
 </div>
 
@@ -342,13 +375,61 @@ fill("slot-prof", profChart(r, active));
 fill("slot-ts", tsChart(r, g, active));
 fill("slot-global", ptGlobal(r, g));
 fill("slot-condbar", condBar(r, active));
+fill("slot-wick", wickTradeoff(r));
 fill("slot-table", statePointTable(r, active, sel.sel));
-fill("slot-selbar", selectionBar(r, active, sel.sel, sel.hi, () => selection.clearPin()));
+fill("slot-selbar", selectionBar(r, active, sel.sel, sel.hi, () => selection.clearPin(), renderTex));
 ```
 
 ```js
 fill("slot-legend", legend());
 ```
+
+<details class="relations">
+<summary>Physical scale — what real numbers look like</summary>
+
+<p class="closure">
+Everything the model computes is dimensionless. These are not model output: they are real
+dimensional values for one real fluid, put here so the dimensionless numbers above have something
+to be anchored against. <strong>Nothing in this table comes from the model, and no value here
+should be read as a prediction of it.</strong> They are computed by
+<code>scripts/physical-scale.mjs</code> from standard saturation data (NIST Webbook /
+CoolProp-grade) so they are reproducible.
+</p>
+
+<h3 class="sublabel">Ammonia (R-717) at 300 K</h3>
+
+<div class="constants">
+  <div class="constant"><span>P<sub>sat</sub></span><span>1.062 MPa</span></div>
+  <div class="constant"><span>h<sub>fg</sub></span><span>1165 kJ/kg</span></div>
+  <div class="constant"><span>σ</span><span>21.2 mN/m</span></div>
+  <div class="constant"><span>dP<sub>sat</sub>/dT</span><span>28.2 kPa/K</span></div>
+</div>
+
+<h3 class="sublabel">What that buys you</h3>
+
+<div class="constants">
+  <div class="constant"><span>10 kPa condenser loss costs</span><span>0.36 K of T<sub>sat</sub></span></div>
+  <div class="constant"><span>ΔP<sub>cap,max</sub>, r<sub>p</sub> = 1 µm</span><span>42.4 kPa</span></div>
+  <div class="constant"><span>ΔP<sub>cap,max</sub>, r<sub>p</sub> = 5 µm</span><span>8.5 kPa</span></div>
+  <div class="constant"><span>ΔP<sub>cap,max</sub>, r<sub>p</sub> = 10 µm</span><span>4.2 kPa</span></div>
+  <div class="constant"><span>liquid (dT/dP)<sub>h</sub></span><span>−0.098 K/MPa</span></div>
+  <div class="constant"><span>…over a 20 kPa liquid line</span><span>−0.002 K</span></div>
+</div>
+
+<p class="closure">
+The last two are the reason the liquid line is modelled with an ambient-gain term and no
+Joule–Thomson term at all: the thermodynamic effect is four orders of magnitude below the
+parasitic one at these pressures.
+</p>
+
+<p class="closure">
+<strong>References.</strong> Fluid properties are standard saturation data as above.
+LHP-specific design values — wick pore radii and permeabilities, loop pressure budgets,
+measured operating curves — are <em>not</em> cited here, because this page has none to cite:
+add them from your own source material rather than trusting an uncited number.
+</p>
+
+</details>
 
 <details class="relations">
 <summary>Governing relations and assumptions</summary>
@@ -420,7 +501,6 @@ fill("slot-eqs", html`<div class="eqs">
 
 fill("slot-constants", html`<div class="constants">
   ${[
-    [html`r<sub>p</sub>* pore radius`, PORE_RADIUS.toFixed(2)],
     [html`c<sub>p,l</sub>*`, CV.cpl.toFixed(2)],
     [html`c<sub>p,v</sub>*`, CV.cpv.toFixed(2)],
     ["evaporator G*", CV.Ge.toFixed(1)],
